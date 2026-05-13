@@ -2,10 +2,12 @@ package e2b
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 type CreateSandboxRequest struct {
@@ -25,6 +27,19 @@ type SnapshotRequest struct {
 	Name string `json:"name,omitempty"`
 }
 
+type cubeCreateSandboxResponse struct {
+	RequestID string `json:"RequestID,omitempty"`
+	SandboxID string `json:"sandbox_id,omitempty"`
+	SandboxIP string `json:"sandbox_ip,omitempty"`
+	HostID    string `json:"host_id,omitempty"`
+	HostIP    string `json:"host_ip,omitempty"`
+	State     string `json:"state,omitempty"`
+	Ret       struct {
+		RetCode int    `json:"ret_code,omitempty"`
+		RetMsg  string `json:"ret_msg,omitempty"`
+	} `json:"ret,omitempty"`
+}
+
 func (c *Client) ListSandboxes(ctx context.Context, metadata string) ([]Sandbox, error) {
 	q := url.Values{}
 	if metadata != "" {
@@ -38,10 +53,91 @@ func (c *Client) ListSandboxes(ctx context.Context, metadata string) ([]Sandbox,
 func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*Sandbox, error) {
 	var out Sandbox
 	err := c.doJSON(ctx, http.MethodPost, "/sandboxes", nil, req, &out)
-	if err != nil {
+	if err == nil {
+		return &out, nil
+	}
+
+	// CubeSandbox compatibility:
+	// Some deployments don't expose POST /sandboxes and only provide /v2/sandboxes
+	// with snake_case fields. Retry on 404 with alternate shapes.
+	var apiErr *APIResponseError
+	if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusNotFound {
 		return nil, err
 	}
-	return &out, nil
+
+	altReq := map[string]interface{}{
+		"template_id": req.TemplateID,
+	}
+	if req.Timeout > 0 {
+		altReq["timeout"] = req.Timeout
+	}
+	if req.AutoPause != nil {
+		altReq["auto_pause"] = *req.AutoPause
+	}
+	if req.Secure != nil {
+		altReq["secure"] = *req.Secure
+	}
+	if req.AllowInternetAccess != nil {
+		altReq["allow_internet_access"] = *req.AllowInternetAccess
+	}
+	if req.Network != nil {
+		altReq["network"] = req.Network
+	}
+	if req.Metadata != nil {
+		altReq["metadata"] = req.Metadata
+	}
+	if req.EnvVars != nil {
+		altReq["env_vars"] = req.EnvVars
+	}
+	if req.MCP != nil {
+		altReq["mcp"] = req.MCP
+	}
+	if len(req.VolumeMounts) > 0 {
+		altReq["volume_mounts"] = req.VolumeMounts
+	}
+
+	err = c.doJSON(ctx, http.MethodPost, "/v2/sandboxes", nil, altReq, &out)
+	if err == nil {
+		return &out, nil
+	}
+
+	// CubeMaster compatibility path.
+	var cubeResp cubeCreateSandboxResponse
+	err = c.doJSON(ctx, http.MethodPost, "/cube/sandbox", nil, altReq, &cubeResp)
+	if err == nil && cubeResp.SandboxID != "" {
+		return &Sandbox{
+			SandboxID: cubeResp.SandboxID,
+			State:     cubeResp.State,
+		}, nil
+	}
+
+	// Some installations expose CubeMaster on :8089 while CubeAPI is on :3002.
+	altBase := convertPort(c.baseURL, "8089")
+	if altBase != "" && altBase != c.baseURL {
+		altClient := *c
+		altClient.baseURL = altBase
+		err = altClient.doJSON(ctx, http.MethodPost, "/cube/sandbox", nil, altReq, &cubeResp)
+		if err == nil && cubeResp.SandboxID != "" {
+			return &Sandbox{
+				SandboxID: cubeResp.SandboxID,
+				State:     cubeResp.State,
+			}, nil
+		}
+	}
+	return nil, err
+}
+
+func convertPort(raw, port string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	host := u.Hostname()
+	if host == "" {
+		return ""
+	}
+	u.Host = host + ":" + port
+	return strings.TrimRight(u.String(), "/")
 }
 
 func (c *Client) ListSandboxesV2(ctx context.Context, metadata string) ([]Sandbox, error) {

@@ -175,4 +175,7 @@ cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-imag
 ### test
 ```shell
 go test -v -run TestCreateSandbox ./test/
+go test -v -run TestListSandbox ./test/
+go test -v -run TestCreateTemplateV2 ./test/
+go test -v -run TestCreateSandbox ./test/
 ```
