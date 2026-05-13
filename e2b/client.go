@@ -44,10 +44,16 @@ func WithCompatMode(enabled bool) ClientOption {
 	}
 }
 
-func NewClient(apiKey string, opts ...ClientOption) *Client {
+func WithAPIKey(apiKey string) ClientOption {
+	return func(c *Client) {
+		c.apiKey = apiKey
+	}
+}
+
+func NewClient(opts ...ClientOption) *Client {
 	c := &Client{
 		baseURL: defaultBaseURL,
-		apiKey:  apiKey,
+		apiKey:  "API_KEY",
 		// Default on for local CubeSandbox compatibility.
 		compatMode: true,
 		httpClient: &http.Client{

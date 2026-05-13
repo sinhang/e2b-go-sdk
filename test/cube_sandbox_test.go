@@ -10,7 +10,7 @@ import (
 )
 
 func TestListSandbox(t *testing.T) {
-	client := e2b.NewClient("API_KEY")
+	client := e2b.NewClient()
 	sandbox, err := client.ListSandboxes(context.Background(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -27,7 +27,7 @@ func TestListSandbox(t *testing.T) {
 }
 
 func TestCreateSandbox(t *testing.T) {
-	client := e2b.NewClient("API_KEY")
+	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
 		TemplateID: "tpl-3a864cb982224e97ac2168b5",
 	})
@@ -55,7 +55,7 @@ func TestCreateSandbox(t *testing.T) {
 }
 
 func TestCreateTemplateV2(t *testing.T) {
-	client := e2b.NewClient("API_KEY")
+	client := e2b.NewClient()
 
 	ctx := context.Background()
 	templateID := fmt.Sprintf("sdk-probe-%d", time.Now().UnixNano())
@@ -95,7 +95,7 @@ func TestCreateTemplateV2(t *testing.T) {
 }
 
 func TestCreateSandboxWithMountedExec(t *testing.T) {
-	client := e2b.NewClient("API_KEY")
+	client := e2b.NewClient()
 
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
 		TemplateID: "tpl-3a864cb982224e97ac2168b5",
@@ -108,6 +108,9 @@ func TestCreateSandboxWithMountedExec(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if sandbox == nil {
+		t.Fatal("Sandbox is nil")
 	}
 
 	unique := fmt.Sprintf("e2b-sdk-%d", time.Now().UnixNano())

@@ -289,3 +289,10 @@ go test -v -run TestListSandbox ./test/
 go test -v -run TestCreateTemplateV2 ./test/
 go test -v -run TestCreateSandbox ./test/
 ```
+
+### tag
+```shell
+git push -u origin main
+git tag v0.0.1
+git push origin v0.0.1
+```
