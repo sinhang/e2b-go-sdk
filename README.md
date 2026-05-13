@@ -64,6 +64,10 @@ Templates:
 - The SDK uses `X-API-Key` header for auth.
 - Methods accept `url.Values` for query parameters where applicable.
 - Response types are either typed structs (`Sandbox`, `Template`) or `map[string]any` for flexible schema compatibility.
+- Compatibility mode is enabled by default (`WithCompatMode(true)`).
+- In compatibility mode, selected APIs will fallback on `404`:
+  - `StartProcess`: `/process/start` -> `/sandbox/exec` -> `:8089/cube/sandbox/exec`
+  - `CreateTemplateV2` / `CreateTemplateV3`: fallback to `POST /templates`
 
 Additional APIs implemented:
 
@@ -111,6 +115,79 @@ Teams:
 - `GET /teams`
 - `GET /teams/metrics`
 - `GET /teams/metrics/max`
+
+## Cube Compatibility Matrix (2026-05-13)
+
+Probe target: `http://192.168.1.28:3002`  
+Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=否`
+
+| method | api | e2b | cube |
+|---|---|---|---|
+| GET | /sandboxes | 是 | 是 |
+| POST | /sandboxes | 是 | 是 |
+| GET | /v2/sandboxes | 是 | 是 |
+| GET | /sandboxes/metrics | 是 | 否 |
+| GET | /sandboxes/{sandboxID}/logs | 是 | 是 |
+| GET | /v2/sandboxes/{sandboxID}/logs | 是 | 是 |
+| GET | /sandboxes/{sandboxID} | 是 | 是 |
+| DELETE | /sandboxes/{sandboxID} | 是 | 是 |
+| GET | /sandboxes/{sandboxID}/metrics | 是 | 否 |
+| POST | /sandboxes/{sandboxID}/pause | 是 | 是 |
+| POST | /sandboxes/{sandboxID}/resume | 是 | 是 |
+| POST | /sandboxes/{sandboxID}/connect | 是 | 是 |
+| POST | /sandboxes/{sandboxID}/timeout | 是 | 是 |
+| PUT | /sandboxes/{sandboxID}/network | 是 | 否 |
+| POST | /sandboxes/{sandboxID}/refresh | 是 | 否 |
+| POST | /sandboxes/{sandboxID}/snapshots | 是 | 是 |
+| GET | /snapshots | 是 | 否 |
+| POST | /v3/templates | 是 | 是 |
+| POST | /v2/templates | 是 | 是 |
+| GET | /templates/upload-link | 是 | 否 |
+| GET | /templates | 是 | 是 |
+| POST | /templates | 是 | 是 |
+| GET | /templates/{templateID} | 是 | 是 |
+| POST | /templates/{templateID} | 是 | 是 |
+| DELETE | /templates/{templateID} | 是 | 否 |
+| PATCH | /templates/{templateID} | 是 | 是 |
+| POST | /templates/{templateID}/build | 是 | 否 |
+| POST | /v2/templates/{templateID}/build | 是 | 否 |
+| PATCH | /v2/templates/{templateID} | 是 | 否 |
+| GET | /templates/{templateID}/builds/{buildID} | 是 | 是 |
+| GET | /templates/{templateID}/builds/{buildID}/logs | 是 | 否 |
+| GET | /templates/aliases/{alias} | 是 | 否 |
+| POST | /templates/{templateID}/tags | 是 | 否 |
+| DELETE | /templates/{templateID}/tags | 是 | 否 |
+| GET | /templates/{templateID}/tags | 是 | 否 |
+| GET | /volumes | 是 | 否 |
+| POST | /volumes | 是 | 否 |
+| GET | /volumes/{volumeID} | 是 | 否 |
+| DELETE | /volumes/{volumeID} | 是 | 否 |
+| GET | /envd/health | 是 | 否 |
+| GET | /envd/stats | 是 | 否 |
+| GET | /envd/envs | 是 | 否 |
+| GET | /filesystem/download | 是 | 否 |
+| POST | /filesystem/upload | 是 | 否 |
+| POST | /filesystem/compose | 是 | 否 |
+| POST | /filesystem/createwatcher | 是 | 否 |
+| POST | /filesystem/getwatcherevents | 是 | 否 |
+| POST | /filesystem/listdir | 是 | 否 |
+| POST | /filesystem/makedir | 是 | 否 |
+| POST | /filesystem/move | 是 | 否 |
+| POST | /filesystem/remove | 是 | 否 |
+| POST | /filesystem/removewatcher | 是 | 否 |
+| POST | /filesystem/stat | 是 | 否 |
+| POST | /filesystem/watchdir | 是 | 否 |
+| POST | /process/closestdin | 是 | 否 |
+| POST | /process/connect | 是 | 否 |
+| POST | /process/list | 是 | 否 |
+| POST | /process/sendinput | 是 | 否 |
+| POST | /process/sendsignal | 是 | 否 |
+| POST | /process/start | 是 | 是 |
+| POST | /process/streaminput | 是 | 否 |
+| POST | /process/update | 是 | 否 |
+| GET | /teams | 是 | 否 |
+| GET | /teams/metrics | 是 | 否 |
+| GET | /teams/metrics/max | 是 | 否 |
 
 
 ### cube-sandbox

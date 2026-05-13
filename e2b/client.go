@@ -19,6 +19,7 @@ type Client struct {
 	baseURL    string
 	apiKey     string
 	httpClient *http.Client
+	compatMode bool
 }
 
 type ClientOption func(*Client)
@@ -37,10 +38,18 @@ func WithHTTPClient(hc *http.Client) ClientOption {
 	}
 }
 
+func WithCompatMode(enabled bool) ClientOption {
+	return func(c *Client) {
+		c.compatMode = enabled
+	}
+}
+
 func NewClient(apiKey string, opts ...ClientOption) *Client {
 	c := &Client{
 		baseURL: defaultBaseURL,
 		apiKey:  apiKey,
+		// Default on for local CubeSandbox compatibility.
+		compatMode: true,
 		httpClient: &http.Client{
 			Timeout: 60 * time.Second,
 		},
@@ -120,4 +129,13 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 		return err
 	}
 	return nil
+}
+
+func (c *Client) doJSONAtBase(ctx context.Context, baseURL, method, path string, query url.Values, requestBody any, out any) error {
+	if c == nil {
+		return &BaseError{Message: "nil client"}
+	}
+	alt := *c
+	alt.baseURL = strings.TrimRight(baseURL, "/")
+	return alt.doJSON(ctx, method, path, query, requestBody, out)
 }

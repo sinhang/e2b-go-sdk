@@ -123,16 +123,17 @@ func (c *Client) SendSignal(ctx context.Context, req SendSignalRequest) (*SendSi
 }
 
 func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*StartProcessResponse, error) {
-	var out StartProcessResponse
-	err := c.doJSON(ctx, http.MethodPost, "/process/start", nil, req, &out)
+	// Prefer E2B native route first.
+	var nativeOut StartProcessResponse
+	err := c.doJSON(ctx, http.MethodPost, "/process/start", nil, req, &nativeOut)
 	if err == nil {
-		return &out, nil
+		if nativeOut.PID == "" {
+			nativeOut.PID = "process-start"
+		}
+		return &nativeOut, nil
 	}
-
-	// CubeSandbox compatibility: when /process/start is unavailable (404),
-	// fallback to CubeMaster /cube/sandbox/exec on :8089.
-	var apiErr *APIResponseError
-	if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusNotFound {
+	var nativeAPIErr *APIResponseError
+	if !c.compatMode || !errors.As(err, &nativeAPIErr) || nativeAPIErr.StatusCode != http.StatusNotFound {
 		return nil, err
 	}
 
@@ -141,7 +142,7 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 		sandboxID = req.Env["E2B_SANDBOX_ID"]
 	}
 	if sandboxID == "" {
-		return nil, err
+		return nil, &BaseError{Message: "missing sandbox id: set StartProcessRequest.SandboxID or env E2B_SANDBOX_ID"}
 	}
 
 	containerID := req.ContainerID
@@ -154,7 +155,7 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 		args = strings.Fields(req.Cmd)
 	}
 	if len(args) == 0 {
-		return nil, err
+		return nil, &BaseError{Message: "missing process args: set StartProcessRequest.Args or Cmd"}
 	}
 
 	payload := map[string]interface{}{
@@ -162,24 +163,40 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 		"container_id": containerID,
 		"args":         args,
 	}
-
-	altBase := convertPort(c.baseURL, "8089")
-	if altBase == "" {
-		return nil, err
-	}
-	altClient := *c
-	altClient.baseURL = altBase
-
-	var cubeOut cubeExecResponse
-	if execErr := altClient.doJSON(ctx, http.MethodPost, "/cube/sandbox/exec", nil, payload, &cubeOut); execErr != nil {
-		return nil, execErr
-	}
-	if cubeOut.Ret.RetCode != 200 {
-		return nil, &BaseError{Message: cubeOut.Ret.RetMsg}
+	var out StartProcessResponse
+	err = c.doJSON(ctx, http.MethodPost, "/sandbox/exec", nil, payload, &out)
+	if err == nil {
+		if out.PID == "" {
+			// cube-api may return success without pid for exec-like APIs.
+			out.PID = "cube-exec"
+		}
+		return &out, nil
 	}
 
-	// Cube exec is fire-and-forget; synthesize a lightweight response.
-	return &StartProcessResponse{PID: "cube-exec"}, nil
+	// Fallback: many local deployments expose exec on cubemaster :8089.
+	var apiErr *APIResponseError
+	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+		altBase := convertPort(c.baseURL, "8089")
+		if altBase != "" && altBase != c.baseURL {
+			altClient := *c
+			altClient.baseURL = altBase
+
+			var cubeOut cubeExecResponse
+			execErr := altClient.doJSON(ctx, http.MethodPost, "/cube/sandbox/exec", nil, payload, &cubeOut)
+			if execErr != nil {
+				return nil, execErr
+			}
+			if cubeOut.Ret.RetCode != 200 {
+				if cubeOut.Ret.RetMsg == "" {
+					return nil, &BaseError{Message: "cube exec failed"}
+				}
+				return nil, &BaseError{Message: cubeOut.Ret.RetMsg}
+			}
+			return &StartProcessResponse{PID: "cube-exec"}, nil
+		}
+	}
+
+	return nil, err
 }
 
 func (c *Client) StreamInput(ctx context.Context, req StreamInputRequest) (*StreamInputResponse, error) {

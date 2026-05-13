@@ -32,6 +32,9 @@ func TestCreateSandbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if sandbox == nil {
+		t.Fatal("Sandbox is nil")
+	}
 	//err = client.DeleteSandbox(context.Background(), sandbox.SandboxID)
 	//if err != nil {
 	//	t.Fatal(err)

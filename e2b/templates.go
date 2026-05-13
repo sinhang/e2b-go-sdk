@@ -2,6 +2,7 @@ package e2b
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,12 +11,31 @@ import (
 func (c *Client) CreateTemplateV3(ctx context.Context, body JSONMap) (JSONMap, error) {
 	out := JSONMap{}
 	err := c.doJSON(ctx, http.MethodPost, "/v3/templates", nil, body, &out)
+	if err == nil {
+		return out, nil
+	}
+	if c.compatMode {
+		var apiErr *APIResponseError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+			// Cube fallback: only supports legacy create template route.
+			err = c.doJSON(ctx, http.MethodPost, "/templates", nil, body, &out)
+		}
+	}
 	return out, err
 }
 
 func (c *Client) CreateTemplateV2(ctx context.Context, body JSONMap) (JSONMap, error) {
 	out := JSONMap{}
 	err := c.doJSON(ctx, http.MethodPost, "/v2/templates", nil, body, &out)
+	if err == nil {
+		return out, nil
+	}
+	if c.compatMode {
+		var apiErr *APIResponseError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+			err = c.doJSON(ctx, http.MethodPost, "/templates", nil, body, &out)
+		}
+	}
 	return out, err
 }
 
