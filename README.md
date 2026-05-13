@@ -293,6 +293,6 @@ go test -v -run TestCreateSandbox ./test/
 ### tag
 ```shell
 git push -u origin main
-git tag v0.0.2
-git push origin v0.0.2
+git tag v0.0.3
+git push origin v0.0.3
 ```
