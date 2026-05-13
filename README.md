@@ -135,7 +135,7 @@ Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=
 | POST | /sandboxes/{sandboxID}/pause | 是 | 是 |
 | POST | /sandboxes/{sandboxID}/resume | 是 | 是 |
 | POST | /sandboxes/{sandboxID}/connect | 是 | 是 |
-| POST | /sandboxes/{sandboxID}/timeout | 是 | 是 |
+| POST | /sandboxes/{sandboxID}/timeout | 是 | 否 |
 | PUT | /sandboxes/{sandboxID}/network | 是 | 否 |
 | POST | /sandboxes/{sandboxID}/refresh | 是 | 否 |
 | POST | /sandboxes/{sandboxID}/snapshots | 是 | 是 |
@@ -147,13 +147,13 @@ Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=
 | POST | /templates | 是 | 是 |
 | GET | /templates/{templateID} | 是 | 是 |
 | POST | /templates/{templateID} | 是 | 是 |
-| DELETE | /templates/{templateID} | 是 | 否 |
-| PATCH | /templates/{templateID} | 是 | 是 |
+| DELETE | /templates/{templateID} | 是 | 是 |
+| PATCH | /templates/{templateID} | 是 | 否 |
 | POST | /templates/{templateID}/build | 是 | 否 |
 | POST | /v2/templates/{templateID}/build | 是 | 否 |
 | PATCH | /v2/templates/{templateID} | 是 | 否 |
-| GET | /templates/{templateID}/builds/{buildID} | 是 | 是 |
-| GET | /templates/{templateID}/builds/{buildID}/logs | 是 | 否 |
+| GET | /templates/{templateID}/builds/{buildID} | 是 | 否 |
+| GET | /templates/{templateID}/builds/{buildID}/logs | 是 | 是 |
 | GET | /templates/aliases/{alias} | 是 | 否 |
 | POST | /templates/{templateID}/tags | 是 | 否 |
 | DELETE | /templates/{templateID}/tags | 是 | 否 |
@@ -188,6 +188,39 @@ Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=
 | GET | /teams | 是 | 否 |
 | GET | /teams/metrics | 是 | 否 |
 | GET | /teams/metrics/max | 是 | 否 |
+
+## Verified Runtime Parameters
+
+The following APIs were verified against the local CubeSandbox deployment.
+
+| method | api | verified params |
+|---|---|---|
+| GET | /sandboxes | `metadata` optional |
+| POST | /sandboxes | `templateID` required; `volumeMounts` works when each item uses `name` + `path` |
+| GET | /v2/sandboxes | `metadata` optional |
+| GET | /sandboxes/{sandboxID} | `sandboxID` path param |
+| GET | /sandboxes/{sandboxID}/logs | `sandboxID` path param |
+| GET | /v2/sandboxes/{sandboxID}/logs | `sandboxID` path param |
+| DELETE | /sandboxes/{sandboxID} | `sandboxID` path param |
+| POST | /sandboxes/{sandboxID}/pause | `sandboxID` path param |
+| POST | /sandboxes/{sandboxID}/resume | `sandboxID` path param |
+| POST | /sandboxes/{sandboxID}/connect | `sandboxID` path param; body needs `timeout` |
+| POST | /sandboxes/{sandboxID}/snapshots | `sandboxID` path param; body needs `name` |
+| POST | /templates | `templateID`, `image`, `source_image_ref`, `writable_layer_size` required |
+| GET | /templates | no required body params |
+| GET | /templates/{templateID} | `templateID` path param |
+| POST | /templates/{templateID} | `templateID` path param; empty body is accepted for rebuild |
+| GET | /templates/{templateID}/builds/{buildID}/logs | `templateID` and `buildID` path params |
+| DELETE | /templates/{templateID} | `templateID` path param |
+| POST | /process/start | `SandboxID` or `env.E2B_SANDBOX_ID`; `Cmd` or `Args`; `ContainerID` optional and defaults to `SandboxID` |
+
+Verified tests:
+- `TestCreateSandbox`
+- `TestCreateSandboxWithMountedExec`
+
+Notes:
+- `CreateTemplateV2` and `CreateTemplateV3` use the same verified create payload via compat fallback.
+- For mounted file execution, the working payload used `volumeMounts: [{"name":"tmp","path":"/workspace"}]` and `StartProcessRequest` with `SandboxID` plus `Args`.
 
 
 ### cube-sandbox
