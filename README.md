@@ -11,7 +11,7 @@ Module:
 ## Quick start
 
 ```go
-client := e2b.NewClient("<E2B_API_KEY>")
+client := e2b.NewClient()
 ctx := context.Background()
 
 sandboxes, err := client.ListSandboxes(ctx, "")
@@ -293,6 +293,6 @@ go test -v -run TestCreateSandbox ./test/
 ### tag
 ```shell
 git push -u origin main
-git tag v0.0.1
-git push origin v0.0.1
+git tag v0.0.2
+git push origin v0.0.2
 ```
