@@ -176,7 +176,7 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 	// Fallback: many local deployments expose exec on cubemaster :8089.
 	var apiErr *APIResponseError
 	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
-		altBase := convertPort(c.baseURL, "8089")
+		altBase := convertPort(c.baseURL, c.CubePort)
 		if altBase != "" && altBase != c.baseURL {
 			altClient := *c
 			altClient.baseURL = altBase

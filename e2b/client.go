@@ -20,6 +20,7 @@ type Client struct {
 	apiKey     string
 	httpClient *http.Client
 	compatMode bool
+	CubePort   int
 }
 
 type ClientOption func(*Client)
@@ -50,6 +51,12 @@ func WithAPIKey(apiKey string) ClientOption {
 	}
 }
 
+func WithCubePort(port int) ClientOption {
+	return func(c *Client) {
+		c.CubePort = port
+	}
+}
+
 func NewClient(opts ...ClientOption) *Client {
 	c := &Client{
 		baseURL: defaultBaseURL,
@@ -59,6 +66,7 @@ func NewClient(opts ...ClientOption) *Client {
 		httpClient: &http.Client{
 			Timeout: 60 * time.Second,
 		},
+		CubePort: 8089,
 	}
 	for _, opt := range opts {
 		opt(c)

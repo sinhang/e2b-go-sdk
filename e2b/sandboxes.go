@@ -112,7 +112,7 @@ func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*
 	}
 
 	// Some installations expose CubeMaster on :8089 while CubeAPI is on :3002.
-	altBase := convertPort(c.baseURL, "8089")
+	altBase := convertPort(c.baseURL, c.CubePort)
 	if altBase != "" && altBase != c.baseURL {
 		altClient := *c
 		altClient.baseURL = altBase
@@ -127,7 +127,7 @@ func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*
 	return nil, err
 }
 
-func convertPort(raw, port string) string {
+func convertPort(raw string, port int) string {
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" {
 		return ""
@@ -136,7 +136,7 @@ func convertPort(raw, port string) string {
 	if host == "" {
 		return ""
 	}
-	u.Host = host + ":" + port
+	u.Host = fmt.Sprintf("%s:%d", host, port)
 	return strings.TrimRight(u.String(), "/")
 }
 
