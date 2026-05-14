@@ -225,6 +225,9 @@ Notes:
 
 ### cube-sandbox
 ```shell
+sudo /usr/local/services/cubetoolbox/scripts/one-click/down-local.sh
+sudo /usr/local/services/cubetoolbox/scripts/one-click/up.sh
+sudo mount -o loop /xfs.img /data/cubelet
 sublime-text.subl /home/mercury/cube-sandbox/cube-sandbox-one-click-9c16021/.env
 sublime-text.subl /usr/local/services/cubetoolbox/CubeMaster/conf.yaml
 sudo /home/mercury/cube-sandbox/cube-sandbox-one-click-9c16021/install.sh 
@@ -250,6 +253,14 @@ cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-image \
 2026/05/13 15:21:56 phase: PULLING
 2026/05/13 15:21:56 progress: 0%
 2026/05/13 15:21:56 distribution: 0/0 ready, 0 failed
+
+
+cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-image \
+    --image cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest \
+    --writable-layer-size 1G \
+    --expose-port 49997 \
+    --expose-port 49981
+
 
 
 ```
@@ -280,7 +291,9 @@ cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-imag
 ```
 
 ### docs
-[e2b.dev](https://www.e2b.dev/docs/api-reference/sandboxes/list-sandboxes)
+[e2b.dev](https://www.e2b.dev/docs/api-reference/sandboxes/list-sandboxes)  
+[gpt](https://chatgpt.com/c/6a053383-f298-8321-8fed-44cfa3f01138)  
+[deepseek](https://chat.deepseek.com/a/chat/s/ad583503-fe28-4708-949e-b3fd7a57219b)
 
 ### test
 ```shell
@@ -288,6 +301,7 @@ go test -v -run TestCreateSandbox ./test/
 go test -v -run TestListSandbox ./test/
 go test -v -run TestCreateTemplateV2 ./test/
 go test -v -run TestCreateSandbox ./test/
+go test -v -run TestCreateSandboxWithMountedExec ./test/
 ```
 
 ### tag
