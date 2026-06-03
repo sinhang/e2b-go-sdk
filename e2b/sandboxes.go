@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 )
 
 type CreateSandboxRequest struct {
@@ -111,33 +110,7 @@ func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*
 		}, nil
 	}
 
-	// Some installations expose CubeMaster on :8089 while CubeAPI is on :3002.
-	altBase := convertPort(c.baseURL, c.CubePort)
-	if altBase != "" && altBase != c.baseURL {
-		altClient := *c
-		altClient.baseURL = altBase
-		err = altClient.doJSON(ctx, http.MethodPost, "/cube/sandbox", nil, altReq, &cubeResp)
-		if err == nil && cubeResp.SandboxID != "" {
-			return &Sandbox{
-				SandboxID: cubeResp.SandboxID,
-				State:     cubeResp.State,
-			}, nil
-		}
-	}
 	return nil, err
-}
-
-func convertPort(raw string, port int) string {
-	u, err := url.Parse(raw)
-	if err != nil || u.Host == "" {
-		return ""
-	}
-	host := u.Hostname()
-	if host == "" {
-		return ""
-	}
-	u.Host = fmt.Sprintf("%s:%d", host, port)
-	return strings.TrimRight(u.String(), "/")
 }
 
 func (c *Client) ListSandboxesV2(ctx context.Context, metadata string) ([]Sandbox, error) {

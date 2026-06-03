@@ -67,7 +67,7 @@ Templates:
 - Response types are either typed structs (`Sandbox`, `Template`) or `map[string]any` for flexible schema compatibility.
 - Compatibility mode is enabled by default (`WithCompatMode(true)`).
 - In compatibility mode, selected APIs will fallback on `404`:
-  - `StartProcess`: `/process/start` -> `/sandbox/exec` -> `:8089/cube/sandbox/exec`
+  - `StartProcess`: `/process/start` -> `/sandbox/exec`
   - `CreateTemplateV2` / `CreateTemplateV3`: fallback to `POST /templates`
 
 Sandbox command execution:
@@ -191,7 +191,7 @@ Teams:
 
 ## Cube Compatibility Matrix (2026-05-13)
 
-Probe target: `http://192.168.1.28:3002`  
+Probe target: `http://127.0.0.1:13000`  
 Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=否`
 
 | method | api | e2b | cube |
@@ -312,7 +312,7 @@ sudo /usr/local/services/cubetoolbox/scripts/one-click/down-local.sh
 /data/log/CubeMaster/
 
 
-cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-image \
+cubemastercli -a 127.0.0.1 tpl create-from-image \
     --image cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-browser:latest \
     --writable-layer-size 1G \
     --expose-port 49999 \
@@ -328,7 +328,7 @@ cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-image \
 2026/05/13 15:21:56 distribution: 0/0 ready, 0 failed
 
 
-cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-image \
+cubemastercli -a 127.0.0.1 tpl create-from-image \
     --image cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest \
     --writable-layer-size 1G \
     --expose-port 49996 \
@@ -340,7 +340,7 @@ cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-image \
 ```
 
 ```shell
-cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-imag
+cubemastercli -a 127.0.0.1 tpl create-from-imag
 - --image
 - --template-id
 - --writable-layer-size

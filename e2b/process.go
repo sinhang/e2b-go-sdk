@@ -56,13 +56,6 @@ type StartProcessResponse struct {
 	PID string `json:"pid,omitempty"`
 }
 
-type cubeExecResponse struct {
-	Ret struct {
-		RetCode int    `json:"ret_code,omitempty"`
-		RetMsg  string `json:"ret_msg,omitempty"`
-	} `json:"ret,omitempty"`
-}
-
 type StreamInputRequest struct {
 	PID   string `json:"pid,omitempty"`
 	Input string `json:"input,omitempty"`
@@ -171,29 +164,6 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 			out.PID = "cube-exec"
 		}
 		return &out, nil
-	}
-
-	// Fallback: many local deployments expose exec on cubemaster :8089.
-	var apiErr *APIResponseError
-	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
-		altBase := convertPort(c.baseURL, c.CubePort)
-		if altBase != "" && altBase != c.baseURL {
-			altClient := *c
-			altClient.baseURL = altBase
-
-			var cubeOut cubeExecResponse
-			execErr := altClient.doJSON(ctx, http.MethodPost, "/cube/sandbox/exec", nil, payload, &cubeOut)
-			if execErr != nil {
-				return nil, execErr
-			}
-			if cubeOut.Ret.RetCode != 200 {
-				if cubeOut.Ret.RetMsg == "" {
-					return nil, &BaseError{Message: "cube exec failed"}
-				}
-				return nil, &BaseError{Message: cubeOut.Ret.RetMsg}
-			}
-			return &StartProcessResponse{PID: "cube-exec"}, nil
-		}
 	}
 
 	return nil, err

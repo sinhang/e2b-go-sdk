@@ -13,7 +13,6 @@ import (
 )
 
 // const defaultBaseURL = "https://api.e2b.app"
-// const defaultBaseURL = "http://192.168.1.28:3002"
 const defaultBaseURL = "http://127.0.0.1:13000"
 
 type Client struct {
@@ -21,7 +20,6 @@ type Client struct {
 	apiKey     string
 	httpClient *http.Client
 	compatMode bool
-	CubePort   int
 }
 
 type ClientOption func(*Client)
@@ -52,12 +50,6 @@ func WithAPIKey(apiKey string) ClientOption {
 	}
 }
 
-func WithCubePort(port int) ClientOption {
-	return func(c *Client) {
-		c.CubePort = port
-	}
-}
-
 func NewClient(opts ...ClientOption) *Client {
 	c := &Client{
 		baseURL: defaultBaseURL,
@@ -67,7 +59,6 @@ func NewClient(opts ...ClientOption) *Client {
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
-		CubePort: 8089,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -146,13 +137,4 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 		return err
 	}
 	return nil
-}
-
-func (c *Client) doJSONAtBase(ctx context.Context, baseURL, method, path string, query url.Values, requestBody any, out any) error {
-	if c == nil {
-		return &BaseError{Message: "nil client"}
-	}
-	alt := *c
-	alt.baseURL = strings.TrimRight(baseURL, "/")
-	return alt.doJSON(ctx, method, path, query, requestBody, out)
 }
