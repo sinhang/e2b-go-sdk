@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -144,5 +145,55 @@ func TestCreateSandboxWithMountedExec(t *testing.T) {
 	}
 	if check == nil || check.PID == "" {
 		t.Fatalf("expected non-empty check PID, got %+v", check)
+	}
+}
+
+// TestCodeInterpreterSimple executes Python code inside a sandbox through
+// the data plane (CubeProxy → lightweight code interpreter on port 49999).
+func TestCodeInterpreterSimple(t *testing.T) {
+	dataPlaneURL := os.Getenv("CUBE_DATAPLANE_URL")
+	if dataPlaneURL == "" {
+		dataPlaneURL = "https://127.0.0.1:11443"
+	}
+	templateID := os.Getenv("CUBE_TEMPLATE_ID")
+	if templateID == "" {
+		templateID = "tpl-3a05aafec23c4d928cfa1850"
+	}
+
+	client := e2b.NewClient(
+		e2b.WithDataPlaneURL(dataPlaneURL),
+	)
+
+	ctx := context.Background()
+
+	sandbox, err := client.CreateSandbox(ctx, e2b.CreateSandboxRequest{
+		TemplateID: templateID,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create sandbox: %v", err)
+	}
+	if sandbox == nil || sandbox.SandboxID == "" {
+		t.Fatal("Sandbox creation returned empty ID")
+	}
+	sandboxID := sandbox.SandboxID
+	t.Logf("Sandbox created: %s", sandboxID)
+
+	time.Sleep(5 * time.Second)
+
+	interpreter := e2b.NewCodeInterpreter(client, sandboxID)
+	execution, err := interpreter.RunSimple(ctx, "print('Hello world Cube！')")
+	if err != nil {
+		t.Fatalf("RunSimple failed: %v", err)
+	}
+
+	t.Logf("Execution stdout: %q", execution.Logs.Stdout)
+	t.Logf("Execution text: %q", execution.Text())
+
+	if execution.Text() != "Hello world Cube！\n" {
+		t.Errorf("expected 'Hello world Cube！\\n', got %q", execution.Text())
+	}
+
+	if err := client.DeleteSandbox(ctx, sandboxID); err != nil {
+		t.Logf("Warning: failed to delete sandbox %s: %v", sandboxID, err)
 	}
 }

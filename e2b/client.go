@@ -3,6 +3,7 @@ package e2b
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,12 +15,17 @@ import (
 
 // const defaultBaseURL = "https://api.e2b.app"
 const defaultBaseURL = "http://127.0.0.1:13000"
+const defaultSandboxDomain = "cube.app"
 
 type Client struct {
 	baseURL    string
 	apiKey     string
 	httpClient *http.Client
 	compatMode bool
+
+	dataPlaneURL    string
+	sandboxDomain   string
+	dataPlaneClient *http.Client
 }
 
 type ClientOption func(*Client)
@@ -50,18 +56,49 @@ func WithAPIKey(apiKey string) ClientOption {
 	}
 }
 
+// WithDataPlaneURL sets the data-plane endpoint (CubeProxy).
+// In dev mode this is typically "https://127.0.0.1:11443".
+// When set, data-plane requests are sent directly to this URL with
+// a Host header rewritten to {port}-{sandbox_id}.{domain}.
+func WithDataPlaneURL(dataPlaneURL string) ClientOption {
+	return func(c *Client) {
+		c.dataPlaneURL = strings.TrimRight(dataPlaneURL, "/")
+	}
+}
+
+// WithSandboxDomain sets the domain for sandbox data-plane hostnames.
+// Default is "cube.app".
+func WithSandboxDomain(domain string) ClientOption {
+	return func(c *Client) {
+		c.sandboxDomain = domain
+	}
+}
+
 func NewClient(opts ...ClientOption) *Client {
 	c := &Client{
-		baseURL: defaultBaseURL,
-		apiKey:  "API_KEY",
-		// Default on for local CubeSandbox compatibility.
-		compatMode: true,
+		baseURL:       defaultBaseURL,
+		apiKey:        "API_KEY",
+		compatMode:    true,
+		sandboxDomain: defaultSandboxDomain,
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
 	}
 	for _, opt := range opts {
 		opt(c)
+	}
+
+	// Build data-plane client. In dev mode the dataPlaneURL points to
+	// a local CubeProxy whose TLS certificate is self-signed; skip verify.
+	c.dataPlaneClient = &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	if c.dataPlaneURL != "" {
+		c.dataPlaneClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
 	}
 	return c
 }
