@@ -13,7 +13,8 @@ import (
 )
 
 // const defaultBaseURL = "https://api.e2b.app"
-const defaultBaseURL = "http://192.168.1.28:3002"
+// const defaultBaseURL = "http://192.168.1.28:3002"
+const defaultBaseURL = "http://127.0.0.1:13000"
 
 type Client struct {
 	baseURL    string
@@ -64,7 +65,7 @@ func NewClient(opts ...ClientOption) *Client {
 		// Default on for local CubeSandbox compatibility.
 		compatMode: true,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 5 * time.Second,
 		},
 		CubePort: 8089,
 	}
@@ -99,9 +100,11 @@ func (c *Client) doJSON(ctx context.Context, method, path string, query url.Valu
 		if err != nil {
 			return err
 		}
+		fmt.Println("doJSON:", string(b))
 		body = bytes.NewReader(b)
 	}
 
+	fmt.Println("doJSON:", method, u)
 	req, err := http.NewRequestWithContext(ctx, method, u, body)
 	if err != nil {
 		return err

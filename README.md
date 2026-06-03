@@ -4,6 +4,7 @@ Go SDK for E2B API, including:
 - Python SDK exceptions mapping (`v2.14.1`)
 - Sandboxes APIs
 - Templates APIs
+- Code Interpreter SDK surface (`code_interpreter` Python SDK `v2.5.0`)
 
 Module:
 - `github.com/sinhang/e2b-go-sdk`
@@ -68,6 +69,78 @@ Templates:
 - In compatibility mode, selected APIs will fallback on `404`:
   - `StartProcess`: `/process/start` -> `/sandbox/exec` -> `:8089/cube/sandbox/exec`
   - `CreateTemplateV2` / `CreateTemplateV3`: fallback to `POST /templates`
+
+Sandbox command execution:
+- `client.Commands(sandboxID).RunSimple(ctx, "echo hello cube")`
+- `client.RunCommand(ctx, e2b.RunCommandRequest{SandboxID: sandboxID, Cmd: "echo hello cube"})`
+- Returns `Stdout`/`Stderr` directly from the sandbox command response when the deployment exposes them.
+
+## Code Interpreter
+
+The SDK includes a Go surface corresponding to the E2B Python `code_interpreter` SDK (`v2.5.0`).
+
+Implemented Go APIs:
+- `e2b.NewCodeInterpreter(client, sandboxID...)`
+- `(*CodeInterpreter).Run(ctx, RunCodeRequest)`
+- `(*CodeInterpreter).RunSimple(ctx, code, sandboxID)`
+- `e2b.ExecuteCode(ctx, client, code, sandboxID)`
+- `(*CodeInterpreter).CreateCodeContext(ctx, CreateCodeContextRequest)`
+- `(*CodeInterpreter).ListCodeContexts(ctx, sandboxID)`
+- `(*CodeInterpreter).RemoveCodeContext(ctx, RemoveCodeContextRequest)`
+- `(*CodeInterpreter).RestartCodeContext(ctx, RestartCodeContextRequest)`
+
+Core types:
+- `RunCodeRequest`
+- `Execution`
+- `Result`
+- `Logs`
+- `OutputMessage`
+- `ExecutionError`
+- `CodeContext`
+
+Current implementation notes:
+- The SDK shape is implemented and unit-tested.
+- The default HTTP routes assumed by the SDK are:
+  - `POST /sandboxes/{sandboxID}/code-interpreter/run`
+  - `POST /sandboxes/{sandboxID}/code-interpreter/contexts`
+  - `GET /sandboxes/{sandboxID}/code-interpreter/contexts`
+  - `DELETE /sandboxes/{sandboxID}/code-interpreter/contexts/{contextID}`
+  - `POST /sandboxes/{sandboxID}/code-interpreter/contexts/{contextID}/restart`
+- Your current Cube deployment still lacks a real code execution backend for the `code_interpreter` routes, so these APIs are SDK-complete but cannot yet succeed end-to-end until the server-side routes exist.
+
+Example:
+
+```go
+client := e2b.NewClient()
+interpreter := e2b.NewCodeInterpreter(client, sandboxID)
+
+execution, err := interpreter.Run(ctx, e2b.RunCodeRequest{
+    SandboxID: sandboxID,
+    Code:      "print('hello')",
+    Language:  "python",
+    Timeout:   30,
+})
+if err != nil {
+    panic(err)
+}
+
+fmt.Println(execution.Text())
+fmt.Println(execution.Stdout)
+```
+
+Command execution example:
+
+```go
+client := e2b.NewClient()
+runner := client.Commands(sandboxID)
+
+resp, err := runner.RunSimple(ctx, "echo hello cube")
+if err != nil {
+    panic(err)
+}
+
+fmt.Println(resp.StdoutText())
+```
 
 Additional APIs implemented:
 
@@ -225,9 +298,9 @@ Notes:
 
 ### cube-sandbox
 ```shell
+sudo mount -o loop /xfs.img /data/cubelet
 sudo /usr/local/services/cubetoolbox/scripts/one-click/down-local.sh
 sudo /usr/local/services/cubetoolbox/scripts/one-click/up.sh
-sudo mount -o loop /xfs.img /data/cubelet
 sublime-text.subl /home/mercury/cube-sandbox/cube-sandbox-one-click-9c16021/.env
 sublime-text.subl /usr/local/services/cubetoolbox/CubeMaster/conf.yaml
 sudo /home/mercury/cube-sandbox/cube-sandbox-one-click-9c16021/install.sh 
@@ -258,10 +331,11 @@ cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-image \
 cubemastercli -a 127.0.0.1 -p 8089 tpl create-from-image \
     --image cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest \
     --writable-layer-size 1G \
-    --expose-port 49997 \
-    --expose-port 49981
+    --expose-port 49996 \
+    --expose-port 49980 \
+    --template-id code-template
 
-
+# tpl-b574464e57cf457fa42caa2f
 
 ```
 
@@ -302,6 +376,10 @@ go test -v -run TestListSandbox ./test/
 go test -v -run TestCreateTemplateV2 ./test/
 go test -v -run TestCreateSandbox ./test/
 go test -v -run TestCreateSandboxWithMountedExec ./test/
+
+go test -v -run TestRunValidation ./e2b/
+go test -v -run TestCodeInterpreterRunSimple ./e2b/
+go test -v -run TestRunCode1 ./test/
 ```
 
 ### tag
