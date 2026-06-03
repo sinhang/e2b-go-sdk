@@ -189,7 +189,7 @@ Teams:
 - `GET /teams/metrics`
 - `GET /teams/metrics/max`
 
-## Cube Compatibility Matrix (2026-05-13)
+## Cube Compatibility Matrix (2026-06-03)
 
 Probe target: `http://127.0.0.1:13000`  
 Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=否`
@@ -208,11 +208,11 @@ Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=
 | POST | /sandboxes/{sandboxID}/pause | 是 | 是 |
 | POST | /sandboxes/{sandboxID}/resume | 是 | 是 |
 | POST | /sandboxes/{sandboxID}/connect | 是 | 是 |
-| POST | /sandboxes/{sandboxID}/timeout | 是 | 否 |
+| POST | /sandboxes/{sandboxID}/timeout | 是 | 是 |
 | PUT | /sandboxes/{sandboxID}/network | 是 | 否 |
 | POST | /sandboxes/{sandboxID}/refresh | 是 | 否 |
 | POST | /sandboxes/{sandboxID}/snapshots | 是 | 是 |
-| GET | /snapshots | 是 | 否 |
+| GET | /snapshots | 是 | 是 |
 | POST | /v3/templates | 是 | 是 |
 | POST | /v2/templates | 是 | 是 |
 | GET | /templates/upload-link | 是 | 否 |
@@ -221,11 +221,11 @@ Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=
 | GET | /templates/{templateID} | 是 | 是 |
 | POST | /templates/{templateID} | 是 | 是 |
 | DELETE | /templates/{templateID} | 是 | 是 |
-| PATCH | /templates/{templateID} | 是 | 否 |
+| PATCH | /templates/{templateID} | 是 | 是 |
 | POST | /templates/{templateID}/build | 是 | 否 |
 | POST | /v2/templates/{templateID}/build | 是 | 否 |
 | PATCH | /v2/templates/{templateID} | 是 | 否 |
-| GET | /templates/{templateID}/builds/{buildID} | 是 | 否 |
+| GET | /templates/{templateID}/builds/{buildID} | 是 | 是 |
 | GET | /templates/{templateID}/builds/{buildID}/logs | 是 | 是 |
 | GET | /templates/aliases/{alias} | 是 | 否 |
 | POST | /templates/{templateID}/tags | 是 | 否 |
@@ -255,7 +255,7 @@ Rule: direct or SDK compat-fallback available => `cube=是`; otherwise => `cube=
 | POST | /process/list | 是 | 否 |
 | POST | /process/sendinput | 是 | 否 |
 | POST | /process/sendsignal | 是 | 否 |
-| POST | /process/start | 是 | 是 |
+| POST | /process/start | 是 | 否 |
 | POST | /process/streaminput | 是 | 否 |
 | POST | /process/update | 是 | 否 |
 | GET | /teams | 是 | 否 |
