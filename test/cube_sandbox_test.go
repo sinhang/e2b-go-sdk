@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -244,6 +245,126 @@ func TestCommandRunSimple(t *testing.T) {
 		t.Errorf("expected 'hello cube', got %q", result.StdoutText())
 	}
 
+	if err := client.DeleteSandbox(ctx, sandboxID); err != nil {
+		t.Logf("Warning: failed to delete sandbox %s: %v", sandboxID, err)
+	}
+}
+
+// TestSandboxVolumeMountedScript demonstrates mounting a volume into a sandbox,
+// writing a shell script to the mounted directory, and executing it.
+//
+// The test uses the Python code interpreter (data plane) to write and execute
+// scripts on the mounted filesystem, since envd port 49983 is not available
+// on the default code template.
+func TestSandboxVolumeMountedScript(t *testing.T) {
+	dataPlaneURL := os.Getenv("CUBE_DATAPLANE_URL")
+	if dataPlaneURL == "" {
+		dataPlaneURL = "https://127.0.0.1:11443"
+	}
+	templateID := os.Getenv("CUBE_TEMPLATE_ID")
+	if templateID == "" {
+		templateID = "tpl-3a05aafec23c4d928cfa1850"
+	}
+
+	client := e2b.NewClient(
+		e2b.WithDataPlaneURL(dataPlaneURL),
+	)
+
+	ctx := context.Background()
+
+	// 1. Create sandbox with volume mount: "tmp" volume → /workspace inside sandbox.
+	sandbox, err := client.CreateSandbox(ctx, e2b.CreateSandboxRequest{
+		TemplateID: templateID,
+		VolumeMounts: []e2b.JSONMap{
+			{
+				"name": "tmp",
+				"path": "/workspace",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to create sandbox with volume mount: %v", err)
+	}
+	sandboxID := sandbox.SandboxID
+	t.Logf("Sandbox created: %s (volume: tmp → /workspace)", sandboxID)
+
+	time.Sleep(5 * time.Second)
+
+	// 2. Write a shell script to the mounted workspace via Python code interpreter.
+	interpreter := e2b.NewCodeInterpreter(client, sandboxID)
+
+	scriptName := fmt.Sprintf("hello-%d.sh", time.Now().UnixNano())
+	scriptPath := "/workspace/" + scriptName
+	scriptContent := "#!/bin/sh\necho 'Hello from mounted workspace!'\ndate\nhostname\n"
+
+	writeCode := fmt.Sprintf(`
+import os
+script = """%s"""
+path = "%s"
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "w") as f:
+    f.write(script)
+os.chmod(path, 0o755)
+print("Written {} bytes to {}".format(len(script), path))
+print("File exists: {}".format(os.path.exists(path)))
+`, scriptContent, scriptPath)
+
+	execution, err := interpreter.RunSimple(ctx, writeCode)
+	if err != nil {
+		t.Fatalf("Failed to write script: %v", err)
+	}
+	t.Logf("Write result: %s", execution.Text())
+
+	if execution.Error != nil {
+		t.Fatalf("Write error: %s", execution.Error.Name+": "+execution.Error.Value)
+	}
+
+	// 3. Execute the script via Python subprocess.
+	runCode := fmt.Sprintf(`
+import subprocess, sys
+result = subprocess.run(["sh", "%s"], capture_output=True, text=True)
+print("STDOUT:", result.stdout.strip())
+print("STDERR:", result.stderr.strip())
+print("EXIT_CODE:", result.returncode)
+`, scriptPath)
+
+	execution2, err := interpreter.RunSimple(ctx, runCode)
+	if err != nil {
+		t.Fatalf("Failed to execute script: %v", err)
+	}
+	t.Logf("Execution stdout: %q", execution2.Logs.Stdout)
+	t.Logf("Execution result: %s", execution2.Text())
+
+	if execution2.Error != nil {
+		t.Fatalf("Execution error: %s", execution2.Error.Name+": "+execution2.Error.Value)
+	}
+
+	// 4. Verify the script produced expected output.
+	stdout := strings.Join(execution2.Logs.Stdout, "\n")
+	if !strings.Contains(stdout, "Hello from mounted workspace!") {
+		t.Errorf("Expected 'Hello from mounted workspace!' in output, got: %s", stdout)
+	}
+
+	// 5. Write a second script to verify persistence on the mounted volume.
+	verifyCode := fmt.Sprintf(`
+import os
+path = "%s"
+print("File still exists: {}".format(os.path.exists(path)))
+with open(path) as f:
+    print("Content: {}".format(f.read().strip()))
+`, scriptPath)
+
+	execution3, err := interpreter.RunSimple(ctx, verifyCode)
+	if err != nil {
+		t.Fatalf("Failed to verify persistence: %v", err)
+	}
+	t.Logf("Persistence check: %s", execution3.Text())
+
+	if !strings.Contains(execution3.Text(), "Hello from mounted workspace!") {
+		t.Error("Volume mount persistence failed: script not found after write")
+	}
+
+	// Cleanup.
 	if err := client.DeleteSandbox(ctx, sandboxID); err != nil {
 		t.Logf("Warning: failed to delete sandbox %s: %v", sandboxID, err)
 	}
