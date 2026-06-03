@@ -11,6 +11,11 @@ Module:
 
 ## Quick start
 
+### Install
+```shell
+go get github.com/sinhang/e2b-go-sdk
+```
+
 ```go
 client := e2b.NewClient()
 ctx := context.Background()
@@ -385,8 +390,8 @@ go test -v -run TestRunCode1 ./test/
 ### tag
 ```shell
 git push -u origin main
-git tag v0.0.3
-git push origin v0.0.3
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 ### python example
