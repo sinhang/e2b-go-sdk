@@ -197,3 +197,54 @@ func TestCodeInterpreterSimple(t *testing.T) {
 		t.Logf("Warning: failed to delete sandbox %s: %v", sandboxID, err)
 	}
 }
+
+// TestCommandRunSimple executes a shell command inside a sandbox through
+// the data plane (CubeProxy → envd on port 49983).
+func TestCommandRunSimple(t *testing.T) {
+	dataPlaneURL := os.Getenv("CUBE_DATAPLANE_URL")
+	if dataPlaneURL == "" {
+		dataPlaneURL = "https://127.0.0.1:11443"
+	}
+	templateID := os.Getenv("CUBE_TEMPLATE_ID")
+	if templateID == "" {
+		templateID = "tpl-3a05aafec23c4d928cfa1850"
+	}
+
+	client := e2b.NewClient(
+		e2b.WithDataPlaneURL(dataPlaneURL),
+	)
+
+	ctx := context.Background()
+
+	sandbox, err := client.CreateSandbox(ctx, e2b.CreateSandboxRequest{
+		TemplateID: templateID,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create sandbox: %v", err)
+	}
+	if sandbox == nil || sandbox.SandboxID == "" {
+		t.Fatal("Sandbox creation returned empty ID")
+	}
+	sandboxID := sandbox.SandboxID
+	t.Logf("Sandbox created: %s", sandboxID)
+
+	time.Sleep(5 * time.Second)
+
+	runner := client.Commands(sandboxID)
+	result, err := runner.RunSimple(ctx, "echo hello cube")
+	if err != nil {
+		t.Fatalf("RunSimple failed: %v", err)
+	}
+
+	t.Logf("Command stdout: %q", result.Stdout)
+	t.Logf("Command stderr: %q", result.Stderr)
+	t.Logf("Command exit code: %d", result.ExitCode)
+
+	if result.StdoutText() != "hello cube" {
+		t.Errorf("expected 'hello cube', got %q", result.StdoutText())
+	}
+
+	if err := client.DeleteSandbox(ctx, sandboxID); err != nil {
+		t.Logf("Warning: failed to delete sandbox %s: %v", sandboxID, err)
+	}
+}

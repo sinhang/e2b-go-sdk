@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// envdPort is the port envd listens on inside the sandbox for process/command operations.
+const envdPort = 49983
+
 // RunCommandRequest is the full request for running a command inside a sandbox.
 type RunCommandRequest struct {
 	SandboxID string            `json:"sandboxID,omitempty"`
@@ -33,17 +36,32 @@ func (r *CommandResult) StdoutText() string {
 }
 
 // Commands provides methods for executing shell commands inside a sandbox.
-// Execution goes through the control plane (CubeAPI) to envd inside the sandbox.
 type Commands struct {
 	client    *Client
 	sandboxID string
+	router    *SandboxRouter // lazy init for data plane access
+
+	// EnvdPort is the port envd listens on inside the sandbox.
+	// Default is 49983; set before calling Run if your template uses a different port.
+	EnvdPort int
+}
+
+func (cmd *Commands) getRouter() *SandboxRouter {
+	if cmd.router == nil {
+		cmd.router = &SandboxRouter{
+			sandboxID:    cmd.sandboxID,
+			domain:       cmd.client.sandboxDomain,
+			dataPlaneURL: cmd.client.dataPlaneURL,
+			httpClient:   cmd.client.dataPlaneClient,
+		}
+	}
+	return cmd.router
 }
 
 // Run executes a command inside the sandbox and returns its output.
 //
-// The command is sent to CubeAPI via the control plane, which proxies to
-// envd inside the target sandbox. On success the response includes stdout,
-// stderr, exit code, and PID.
+// In compat mode (Cube): executes through the data plane (CubeProxy → envd
+// inside the sandbox). In non-compat mode (E2B): uses the control plane.
 func (cmd *Commands) Run(ctx context.Context, req RunCommandRequest) (*CommandResult, error) {
 	if req.SandboxID == "" {
 		req.SandboxID = cmd.sandboxID
@@ -60,7 +78,12 @@ func (cmd *Commands) Run(ctx context.Context, req RunCommandRequest) (*CommandRe
 		return nil, &BaseError{Message: "missing command: set Cmd or Args"}
 	}
 
-	// 1. Try E2B-native /process/start (verified working on Cube).
+	// Cube compat: use data plane to reach envd inside the sandbox.
+	if cmd.client.compatMode {
+		return cmd.runViaDataPlane(ctx, req, args)
+	}
+
+	// E2B native: use control plane /process/start.
 	e2bReq := StartProcessRequest{
 		Cmd:       req.Cmd,
 		Args:      req.Args,
@@ -73,19 +96,33 @@ func (cmd *Commands) Run(ctx context.Context, req RunCommandRequest) (*CommandRe
 		return &CommandResult{PID: e2bOut.PID}, nil
 	}
 
-	// 2. Try CubeSandbox compat format with the same path.
-	snakePayload := map[string]interface{}{
-		"sandbox_id":   req.SandboxID,
-		"container_id": req.SandboxID,
-		"args":         args,
-	}
-	var raw map[string]interface{}
-	err2 := cmd.client.doJSON(ctx, http.MethodPost, "/process/start", nil, snakePayload, &raw)
-	if err2 == nil {
-		return parseCommandResult(raw), nil
+	return nil, err
+}
+
+// runViaDataPlane sends the command to envd inside the sandbox through the
+// data plane (CubeProxy → sandbox envd port).
+func (cmd *Commands) runViaDataPlane(ctx context.Context, req RunCommandRequest, args []string) (*CommandResult, error) {
+	router := cmd.getRouter()
+
+	port := cmd.EnvdPort
+	if port == 0 {
+		port = envdPort
 	}
 
-	return nil, err
+	payload := map[string]interface{}{
+		"cmd":  req.Cmd,
+		"args": args,
+	}
+	if req.EnvVars != nil {
+		payload["env"] = req.EnvVars
+	}
+
+	var raw map[string]interface{}
+	err := router.doJSON(ctx, http.MethodPost, port, "/process/start", nil, payload, &raw)
+	if err != nil {
+		return nil, err
+	}
+	return parseCommandResult(raw), nil
 }
 
 // parseCommandResult extracts stdout/stderr/exitCode from a loose response shape.
@@ -122,7 +159,6 @@ func (cmd *Commands) RunSimple(ctx context.Context, command string) (*CommandRes
 }
 
 // Commands returns a Commands runner bound to the given sandbox.
-// Command execution uses the control plane (CubeAPI).
 func (c *Client) Commands(sandboxID string) *Commands {
 	return &Commands{
 		client:    c,
