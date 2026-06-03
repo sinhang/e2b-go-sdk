@@ -2,7 +2,6 @@ package e2b
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -116,7 +115,12 @@ func (c *Client) SendSignal(ctx context.Context, req SendSignalRequest) (*SendSi
 }
 
 func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*StartProcessResponse, error) {
-	// Prefer E2B native route first.
+	// Cube compat: /process/start is pure-404 on Cube, go directly to compat route.
+	if c.compatMode {
+		return c.startProcessCompat(ctx, req)
+	}
+
+	// E2B native route.
 	var nativeOut StartProcessResponse
 	err := c.doJSON(ctx, http.MethodPost, "/process/start", nil, req, &nativeOut)
 	if err == nil {
@@ -125,11 +129,11 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 		}
 		return &nativeOut, nil
 	}
-	var nativeAPIErr *APIResponseError
-	if !c.compatMode || !errors.As(err, &nativeAPIErr) || nativeAPIErr.StatusCode != http.StatusNotFound {
-		return nil, err
-	}
+	return nil, err
+}
 
+// startProcessCompat uses the Cube-compatible /sandbox/exec route.
+func (c *Client) startProcessCompat(ctx context.Context, req StartProcessRequest) (*StartProcessResponse, error) {
 	sandboxID := req.SandboxID
 	if sandboxID == "" && req.Env != nil {
 		sandboxID = req.Env["E2B_SANDBOX_ID"]
@@ -157,15 +161,13 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 		"args":         args,
 	}
 	var out StartProcessResponse
-	err = c.doJSON(ctx, http.MethodPost, "/sandbox/exec", nil, payload, &out)
+	err := c.doJSON(ctx, http.MethodPost, "/sandbox/exec", nil, payload, &out)
 	if err == nil {
 		if out.PID == "" {
-			// cube-api may return success without pid for exec-like APIs.
 			out.PID = "cube-exec"
 		}
 		return &out, nil
 	}
-
 	return nil, err
 }
 
