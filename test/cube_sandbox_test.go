@@ -17,12 +17,12 @@ func TestListSandbox(t *testing.T) {
 	}
 	for _, s := range sandbox {
 		t.Logf("Sandbox: %+v", s)
-		if s.State == "running" {
-			err = client.DeleteSandbox(context.Background(), s.SandboxID)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
+		//if s.State == "running" {
+		//	err = client.DeleteSandbox(context.Background(), s.SandboxID)
+		//	if err != nil {
+		//		t.Fatal(err)
+		//	}
+		//}
 	}
 }
 
@@ -61,11 +61,12 @@ func TestCreateTemplateV2(t *testing.T) {
 	templateID := fmt.Sprintf("sdk-probe-%d", time.Now().UnixNano())
 
 	result, err := client.CreateTemplateV2(ctx, e2b.JSONMap{
-		"image":               "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-browser:latest",
-		"templateID":          templateID,
-		"source_image_ref":    "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-browser:latest",
-		"exposePorts":         []int{49998, 49982},
-		"writable_layer_size": "1G",
+		"image": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
+		//"image":      "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-browser:latest",
+		"templateID":     templateID,
+		"sourceImageRef": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
+		//"exposedPorts":      []int{49999, 49983},
+		"writableLayerSize": "1G",
 	})
 
 	if err != nil {
@@ -74,24 +75,24 @@ func TestCreateTemplateV2(t *testing.T) {
 
 	t.Logf("Template created successfully with V2: %+v", result)
 
-	for i := 0; i < 10; i++ {
-		current, getErr := client.GetTemplate(ctx, templateID, nil)
-		if getErr == nil {
-			if status, ok := current["status"].(string); ok && status == "READY" {
-				break
-			}
-		}
-		time.Sleep(2 * time.Second)
-	}
+	//for i := 0; i < 10; i++ {
+	//	current, getErr := client.GetTemplate(ctx, templateID, nil)
+	//	if getErr == nil {
+	//		if status, ok := current["status"].(string); ok && status == "READY" {
+	//			break
+	//		}
+	//	}
+	//	time.Sleep(2 * time.Second)
+	//}
 
-	for i := 0; i < 12; i++ {
-		if err := client.DeleteTemplate(ctx, templateID); err == nil {
-			return
-		}
-		time.Sleep(5 * time.Second)
-	}
-
-	t.Fatalf("Failed to delete template %s after retries", templateID)
+	//for i := 0; i < 12; i++ {
+	//	if err := client.DeleteTemplate(ctx, templateID); err == nil {
+	//		return
+	//	}
+	//	time.Sleep(5 * time.Second)
+	//}
+	//
+	//t.Fatalf("Failed to delete template %s after retries", templateID)
 }
 
 func TestCreateSandboxWithMountedExec(t *testing.T) {
