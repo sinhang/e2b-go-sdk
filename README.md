@@ -388,3 +388,18 @@ git push -u origin main
 git tag v0.0.3
 git push origin v0.0.3
 ```
+
+### python example
+阅读：docs/e2b-dev-sidecar.md
+dir path: `/mnt/nvme2/develope/develope/code/CubeSandbox/examples/e2b-dev-sidecar`
+```shell
+source /mnt/nvme2/develope/develope/code/CubeSandbox/examples/.venv/bin/activate
+source /mnt/nvme2/develope/develope/code/CubeSandbox/examples/e2b-dev-sidecar/.env
+python /mnt/nvme2/develope/develope/code/CubeSandbox/examples/e2b-dev-sidecar/demo.py
+```
+### 输出
+```
+python demo.py 
+SandboxInfo(sandbox_id='243a708bb9c048bf8ba4bf41fa54a8ae', sandbox_domain='cube.app', template_id='tpl-3a05aafec23c4d928cfa1850', name=None, metadata={'cube.product': 'cubebox', 'cube.numa_node': '0', 'cube.master.runtime.snapshot.attached_at': '2026-06-03T08:10:25.512852494Z', 'cube.master.runtime.restore.snapshot.attached_at': '2026-06-03T08:10:25.512852494Z', 'cube.master.instance.type': 'cubebox', 'cube.master.runtime.snapshot.id': 'tpl-3a05aafec23c4d928cfa1850', 'cube.master.runtime.restore.snapshot.id': 'tpl-3a05aafec23c4d928cfa1850', 'cube.master.appsnapshot.template.id': 'tpl-3a05aafec23c4d928cfa1850', 'X-Caller': 'X-Caller'}, started_at=datetime.datetime(2026, 6, 3, 8, 10, 25, 512907, tzinfo=tzutc()), end_at=datetime.datetime(2026, 6, 3, 8, 10, 25, 512907, tzinfo=tzutc()), state=<SandboxState.RUNNING: 'running'>, cpu_count=2, memory_mb=2000, envd_version='0.2.0', _envd_access_token=None, allow_internet_access=None, network=None, lifecycle=None, volume_mounts=[]) http://127.0.0.1:12580/sandboxes/router/243a708bb9c048bf8ba4bf41fa54a8ae/49983
+Hello world Cube！
+```

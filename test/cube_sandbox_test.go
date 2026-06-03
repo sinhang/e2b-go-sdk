@@ -60,11 +60,11 @@ func TestCreateTemplateV2(t *testing.T) {
 	ctx := context.Background()
 	templateID := fmt.Sprintf("sdk-probe-%d", time.Now().UnixNano())
 
-	result, err := client.CreateTemplateV2(ctx, e2b.JSONMap{
+	result, err := client.CreateTemplate(ctx, e2b.JSONMap{
 		"image": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 		//"image":      "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-browser:latest",
-		"templateID":     templateID,
-		"sourceImageRef": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
+		"templateID": templateID,
+		//"sourceImageRef": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 		//"exposedPorts":      []int{49999, 49983},
 		"writableLayerSize": "1G",
 	})
