@@ -2,7 +2,6 @@ package e2b
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -51,16 +50,25 @@ func (c *Client) ListSandboxes(ctx context.Context, metadata string) ([]Sandbox,
 
 func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*Sandbox, error) {
 	var out Sandbox
+
+	// Cube compat: /sandboxes with camelCase works directly, no fallback needed.
+	if c.compatMode {
+		err := c.doJSON(ctx, http.MethodPost, "/sandboxes", nil, req, &out)
+		if err != nil {
+			return nil, err
+		}
+		return &out, nil
+	}
+
+	// E2B native: try standard route, with fallbacks for deployments that only
+	// expose /v2/sandboxes or /cube/sandbox with snake_case fields.
 	err := c.doJSON(ctx, http.MethodPost, "/sandboxes", nil, req, &out)
 	if err == nil {
 		return &out, nil
 	}
 
-	// CubeSandbox compatibility:
-	// Some deployments don't expose POST /sandboxes and only provide /v2/sandboxes
-	// with snake_case fields. Retry on 404 with alternate shapes.
-	var apiErr *APIResponseError
-	if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusNotFound {
+	apiErr, ok := err.(*APIResponseError)
+	if !ok || apiErr.StatusCode != http.StatusNotFound {
 		return nil, err
 	}
 
@@ -100,7 +108,6 @@ func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*
 		return &out, nil
 	}
 
-	// CubeMaster compatibility path.
 	var cubeResp cubeCreateSandboxResponse
 	err = c.doJSON(ctx, http.MethodPost, "/cube/sandbox", nil, altReq, &cubeResp)
 	if err == nil && cubeResp.SandboxID != "" {

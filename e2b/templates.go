@@ -13,8 +13,25 @@ func (c *Client) CreateTemplateV3(ctx context.Context, body JSONMap) (JSONMap, e
 	if c.compatMode {
 		return out, c.doJSON(ctx, http.MethodPost, "/templates", nil, body, &out)
 	}
+
+	// E2B native: try /v3 → /v2 → legacy fallback chain.
 	err := c.doJSON(ctx, http.MethodPost, "/v3/templates", nil, body, &out)
-	return out, err
+	if err == nil {
+		return out, nil
+	}
+	if apiErr, ok := err.(*APIResponseError); !ok || apiErr.StatusCode != http.StatusNotFound {
+		return out, err
+	}
+
+	err = c.doJSON(ctx, http.MethodPost, "/v2/templates", nil, body, &out)
+	if err == nil {
+		return out, nil
+	}
+	if apiErr, ok := err.(*APIResponseError); !ok || apiErr.StatusCode != http.StatusNotFound {
+		return out, err
+	}
+
+	return out, c.doJSON(ctx, http.MethodPost, "/templates", nil, body, &out)
 }
 
 func (c *Client) CreateTemplateV2(ctx context.Context, body JSONMap) (JSONMap, error) {
@@ -23,8 +40,17 @@ func (c *Client) CreateTemplateV2(ctx context.Context, body JSONMap) (JSONMap, e
 	if c.compatMode {
 		return out, c.doJSON(ctx, http.MethodPost, "/templates", nil, body, &out)
 	}
+
+	// E2B native: try /v2 → /templates fallback chain.
 	err := c.doJSON(ctx, http.MethodPost, "/v2/templates", nil, body, &out)
-	return out, err
+	if err == nil {
+		return out, nil
+	}
+	if apiErr, ok := err.(*APIResponseError); !ok || apiErr.StatusCode != http.StatusNotFound {
+		return out, err
+	}
+
+	return out, c.doJSON(ctx, http.MethodPost, "/templates", nil, body, &out)
 }
 
 func (c *Client) GetBuildUploadLink(ctx context.Context, query url.Values) (JSONMap, error) {

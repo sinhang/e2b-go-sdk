@@ -120,7 +120,7 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 		return c.startProcessCompat(ctx, req)
 	}
 
-	// E2B native route.
+	// E2B native: try /process/start, fall back to /sandbox/exec on 404.
 	var nativeOut StartProcessResponse
 	err := c.doJSON(ctx, http.MethodPost, "/process/start", nil, req, &nativeOut)
 	if err == nil {
@@ -129,7 +129,11 @@ func (c *Client) StartProcess(ctx context.Context, req StartProcessRequest) (*St
 		}
 		return &nativeOut, nil
 	}
-	return nil, err
+	if apiErr, ok := err.(*APIResponseError); !ok || apiErr.StatusCode != http.StatusNotFound {
+		return nil, err
+	}
+
+	return c.startProcessCompat(ctx, req)
 }
 
 // startProcessCompat uses the Cube-compatible /sandbox/exec route.

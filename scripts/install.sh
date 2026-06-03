@@ -1,5 +1,9 @@
 #!/bin/bash
 
+docker compose up -d
+
+docker exec -it cube-sandbox bash
+
 apt update && apt install python3 curl wget qemu-system-x86 qemu-utils ripgrep openssh-client make iproute2 python3-pip python3.12-venv -y
 ./prepare_image.sh
 # /home/CubeSandbox/dev-env/.workdir/
