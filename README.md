@@ -395,7 +395,7 @@ git push origin v0.1.2
 ```
 
 ### python example
-阅读：docs/e2b-dev-sidecar.md
+阅读：docs/e2b-dev-sidecar.md  
 dir path: `/mnt/nvme2/develope/develope/code/CubeSandbox/examples/e2b-dev-sidecar`
 ```shell
 source /mnt/nvme2/develope/develope/code/CubeSandbox/examples/.venv/bin/activate

@@ -23,9 +23,10 @@ type Client struct {
 	httpClient *http.Client
 	compatMode bool
 
-	dataPlaneURL    string
-	sandboxDomain   string
-	dataPlaneClient *http.Client
+	dataPlaneURL     string
+	dataPlaneTimeout time.Duration
+	sandboxDomain    string
+	dataPlaneClient  *http.Client
 }
 
 type ClientOption func(*Client)
@@ -66,6 +67,15 @@ func WithDataPlaneURL(dataPlaneURL string) ClientOption {
 	}
 }
 
+// WithDataPlaneTimeout sets the timeout for data-plane HTTP requests.
+// Default is 5 minutes. Use this for long-running code executions or
+// file operations that may exceed the default.
+func WithDataPlaneTimeout(d time.Duration) ClientOption {
+	return func(c *Client) {
+		c.dataPlaneTimeout = d
+	}
+}
+
 // WithSandboxDomain sets the domain for sandbox data-plane hostnames.
 // Default is "cube.app".
 func WithSandboxDomain(domain string) ClientOption {
@@ -79,7 +89,7 @@ func NewClient(opts ...ClientOption) *Client {
 		baseURL:       defaultBaseURL,
 		apiKey:        "API_KEY",
 		compatMode:    true,
-		sandboxDomain: defaultSandboxDomain,
+		sandboxDomain: defaultSandboxDomain, dataPlaneTimeout: 5 * time.Minute,
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
@@ -91,7 +101,7 @@ func NewClient(opts ...ClientOption) *Client {
 	// Build data-plane client. In dev mode the dataPlaneURL points to
 	// a local CubeProxy whose TLS certificate is self-signed; skip verify.
 	c.dataPlaneClient = &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: c.dataPlaneTimeout,
 	}
 	if c.dataPlaneURL != "" {
 		c.dataPlaneClient.Transport = &http.Transport{

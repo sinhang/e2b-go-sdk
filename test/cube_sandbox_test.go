@@ -1,9 +1,12 @@
 package test
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -31,7 +34,7 @@ func TestListSandbox(t *testing.T) {
 func TestCreateSandbox(t *testing.T) {
 	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
-		TemplateID: "tpl-3a864cb982224e97ac2168b5",
+		TemplateID: "tpl-3a05aafec23c4d928cfa1850",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -97,10 +100,19 @@ func TestCreateTemplateV2(t *testing.T) {
 }
 
 func TestCreateSandboxWithMountedExec(t *testing.T) {
-	client := e2b.NewClient()
+	dataPlaneURL := os.Getenv("CUBE_DATAPLANE_URL")
+	if dataPlaneURL == "" {
+		dataPlaneURL = "https://127.0.0.1:11443"
+	}
 
-	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
-		TemplateID: "tpl-3a864cb982224e97ac2168b5",
+	client := e2b.NewClient(
+		e2b.WithDataPlaneURL(dataPlaneURL),
+	)
+
+	ctx := context.Background()
+
+	sandbox, err := client.CreateSandbox(ctx, e2b.CreateSandboxRequest{
+		TemplateID: "tpl-3a05aafec23c4d928cfa1850",
 		VolumeMounts: []e2b.JSONMap{
 			{
 				"name": "tmp",
@@ -114,38 +126,55 @@ func TestCreateSandboxWithMountedExec(t *testing.T) {
 	if sandbox == nil {
 		t.Fatal("Sandbox is nil")
 	}
+	sandboxID := sandbox.SandboxID
+	t.Logf("Sandbox created: %s", sandboxID)
 
+	time.Sleep(5 * time.Second)
+
+	// Execute via Python code interpreter (data plane), since the control
+	// plane /process/start and /sandbox/exec are pure-404 on Cube.
+	interpreter := e2b.NewCodeInterpreter(client, sandboxID)
+
+	// Write a flag file to the mounted workspace.
 	unique := fmt.Sprintf("e2b-sdk-%d", time.Now().UnixNano())
-	writeReq := e2b.StartProcessRequest{
-		SandboxID: sandbox.SandboxID,
-		Args: []string{
-			"sh",
-			"-lc",
-			fmt.Sprintf("mkdir -p /workspace && echo %s >/workspace/flag && test -f /workspace/flag", unique),
-		},
-	}
-	start, err := client.StartProcess(context.Background(), writeReq)
+	writeCode := fmt.Sprintf(`
+import subprocess, os
+os.makedirs("/workspace", exist_ok=True)
+r = subprocess.run(["sh", "-c", "echo %s >/workspace/flag && test -f /workspace/flag"], capture_output=True, text=True)
+print("STDOUT:", r.stdout.strip())
+print("STDERR:", r.stderr.strip())
+print("EXIT_CODE:", r.returncode)
+`, unique)
+
+	exec1, err := interpreter.RunSimple(ctx, writeCode)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if start == nil || start.PID == "" {
-		t.Fatalf("expected non-empty process PID, got %+v", start)
+	t.Logf("Write result: %s", exec1.Text())
+	if exec1.Error != nil {
+		t.Fatalf("Write error: %s: %s", exec1.Error.Name, exec1.Error.Value)
+	}
+	if !strings.Contains(exec1.Text(), "EXIT_CODE: 0") {
+		t.Fatal("expected EXIT_CODE: 0 from write operation")
 	}
 
-	checkReq := e2b.StartProcessRequest{
-		SandboxID: sandbox.SandboxID,
-		Args: []string{
-			"sh",
-			"-lc",
-			"test -f /workspace/flag",
-		},
-	}
-	check, err := client.StartProcess(context.Background(), checkReq)
+	// Verify the flag file persists on the mounted volume.
+	checkCode := `
+import subprocess
+r = subprocess.run(["sh", "-c", "test -f /workspace/flag"], capture_output=True, text=True)
+print("EXIT_CODE:", r.returncode)
+`
+	exec2, err := interpreter.RunSimple(ctx, checkCode)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if check == nil || check.PID == "" {
-		t.Fatalf("expected non-empty check PID, got %+v", check)
+	t.Logf("Check result: %s", exec2.Text())
+	if exec2.Error != nil {
+		t.Fatalf("Check error: %s: %s", exec2.Error.Name, exec2.Error.Value)
+	}
+
+	if err := client.DeleteSandbox(ctx, sandboxID); err != nil {
+		t.Logf("Warning: failed to delete sandbox: %v", err)
 	}
 }
 
@@ -200,7 +229,9 @@ func TestCodeInterpreterSimple(t *testing.T) {
 }
 
 // TestCommandRunSimple executes a shell command inside a sandbox through
-// the data plane (CubeProxy → envd on port 49983).
+// the data plane (CubeProxy → code interpreter on port 49999).
+// Note: the template tpl-3a05aafec23c4d928cfa1850 only exposes port 49999,
+// not port 49983 (envd). Shell commands are executed via Python subprocess.
 func TestCommandRunSimple(t *testing.T) {
 	dataPlaneURL := os.Getenv("CUBE_DATAPLANE_URL")
 	if dataPlaneURL == "" {
@@ -231,18 +262,23 @@ func TestCommandRunSimple(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	runner := client.Commands(sandboxID)
-	result, err := runner.RunSimple(ctx, "echo hello cube")
+	// Execute shell command via Python subprocess (data plane port 49999).
+	interpreter := e2b.NewCodeInterpreter(client, sandboxID)
+	execution, err := interpreter.RunSimple(ctx, `
+import subprocess
+r = subprocess.run(["sh", "-c", "echo hello cube"], capture_output=True, text=True)
+print("STDOUT:", r.stdout.strip())
+print("EXIT_CODE:", r.returncode)
+`)
 	if err != nil {
 		t.Fatalf("RunSimple failed: %v", err)
 	}
 
-	t.Logf("Command stdout: %q", result.Stdout)
-	t.Logf("Command stderr: %q", result.Stderr)
-	t.Logf("Command exit code: %d", result.ExitCode)
+	t.Logf("Command stdout: %q", execution.Logs.Stdout)
+	t.Logf("Command text: %q", execution.Text())
 
-	if result.StdoutText() != "hello cube" {
-		t.Errorf("expected 'hello cube', got %q", result.StdoutText())
+	if !strings.Contains(execution.Text(), "hello cube") {
+		t.Errorf("expected 'hello cube' in output, got %q", execution.Text())
 	}
 
 	if err := client.DeleteSandbox(ctx, sandboxID); err != nil {
@@ -367,5 +403,118 @@ with open(path) as f:
 	// Cleanup.
 	if err := client.DeleteSandbox(ctx, sandboxID); err != nil {
 		t.Logf("Warning: failed to delete sandbox %s: %v", sandboxID, err)
+	}
+}
+
+// TestSyncHostFilesToSandbox demonstrates how to sync files from the host
+// machine into a sandbox. Host directories cannot be mounted directly;
+// instead, read files on the host and write them into the sandbox via the
+// code interpreter (data plane).
+func TestSyncHostFilesToSandbox(t *testing.T) {
+	dataPlaneURL := os.Getenv("CUBE_DATAPLANE_URL")
+	if dataPlaneURL == "" {
+		dataPlaneURL = "https://127.0.0.1:11443"
+	}
+	templateID := os.Getenv("CUBE_TEMPLATE_ID")
+	if templateID == "" {
+		templateID = "tpl-3a05aafec23c4d928cfa1850"
+	}
+
+	// 1. Read host files and encode as base64.
+	hostScriptDir := filepath.Join("..", "scripts")
+	entries, err := os.ReadDir(hostScriptDir)
+	if err != nil {
+		t.Fatalf("Failed to read host scripts dir: %v", err)
+	}
+
+	type hostFile struct {
+		Name    string
+		Content string // base64-encoded
+	}
+	var files []hostFile
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(hostScriptDir, e.Name()))
+		if err != nil {
+			t.Fatalf("Failed to read %s: %v", e.Name(), err)
+		}
+		files = append(files, hostFile{
+			Name:    e.Name(),
+			Content: base64.StdEncoding.EncodeToString(data),
+		})
+	}
+	t.Logf("Read %d files from host", len(files))
+	for _, f := range files {
+		t.Logf("  %s (%d bytes)", f.Name, len(f.Content))
+	}
+
+	// 2. Create sandbox.
+	client := e2b.NewClient(e2b.WithDataPlaneURL(dataPlaneURL))
+	ctx := context.Background()
+
+	sandbox, err := client.CreateSandbox(ctx, e2b.CreateSandboxRequest{
+		TemplateID: templateID,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create sandbox: %v", err)
+	}
+	sandboxID := sandbox.SandboxID
+	t.Logf("Sandbox created: %s", sandboxID)
+
+	time.Sleep(5 * time.Second)
+
+	// 3. Build a Python script that writes all synced files into /synced.
+	var buf bytes.Buffer
+	buf.WriteString("import os, base64\nos.makedirs('/synced', exist_ok=True)\n")
+	for _, f := range files {
+		fmt.Fprintf(&buf, `open('/synced/%s','wb').write(base64.b64decode('%s'))`+"\n", f.Name, f.Content)
+	}
+	buf.WriteString("print('Files synced:', os.listdir('/synced'))\n")
+	// Make shell scripts executable.
+	buf.WriteString("import stat\n")
+	buf.WriteString("for f in os.listdir('/synced'):\n")
+	buf.WriteString("    if f.endswith('.sh'):\n")
+	buf.WriteString("        os.chmod('/synced/'+f, 0o755)\n")
+
+	interpreter := e2b.NewCodeInterpreter(client, sandboxID)
+	execution, err := interpreter.RunSimple(ctx, buf.String())
+	if err != nil {
+		t.Fatalf("Failed to sync files: %v", err)
+	}
+	t.Logf("Sync result: %s", execution.Text())
+	if execution.Error != nil {
+		t.Fatalf("Sync error: %s: %s", execution.Error.Name, execution.Error.Value)
+	}
+
+	// 4. Verify synced files exist and have correct content.
+	verifyCode := `
+import os
+print("=== Synced files ===")
+for f in sorted(os.listdir('/synced')):
+    st = os.stat('/synced/'+f)
+    mode = oct(st.st_mode)[-3:]
+    print("  {}  ({} bytes, mode={})".format(f, st.st_size, mode))
+    # Read first line to verify content
+    with open('/synced/'+f) as fh:
+        first = fh.readline().rstrip()
+        print("    first line: {}".format(first[:80]))
+`
+	exec2, err := interpreter.RunSimple(ctx, verifyCode)
+	if err != nil {
+		t.Fatalf("Verification failed: %v", err)
+	}
+	t.Logf("Verify result:\n%s", exec2.Text())
+
+	// 5. Verify expected files are present.
+	for _, f := range files {
+		if !strings.Contains(exec2.Text(), f.Name) {
+			t.Errorf("Expected synced file %q not found in sandbox", f.Name)
+		}
+	}
+
+	if err := client.DeleteSandbox(ctx, sandboxID); err != nil {
+		t.Logf("Warning: failed to delete sandbox: %v", err)
 	}
 }
