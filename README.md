@@ -390,8 +390,8 @@ go test -v -run TestRunCode1 ./test/
 ### tag
 ```shell
 git push -u origin main
-git tag v0.1.2
-git push origin v0.1.2
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 ### python example
