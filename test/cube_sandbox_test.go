@@ -63,10 +63,13 @@ func TestCreateTemplateV2(t *testing.T) {
 	client := e2b.NewClient()
 
 	ctx := context.Background()
-	templateID := fmt.Sprintf("sdk-probe-%d", time.Now().UnixNano())
+	templateID := fmt.Sprintf("sdk-internal-%d", time.Now().UnixNano())
 
 	result, err := client.CreateTemplate(ctx, e2b.JSONMap{
-		"image":             "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
+		//"image": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
+		//"image":             "192.168.1.100:5000/sandbox/cube-code-sandbox:v1",
+		//"image":             "192.168.1.100:5000/sandbox/cube-base-code-sandbox:v1",
+		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox:v1",
 		"templateID":        templateID,
 		"exposedPorts":      []int{49999, 49983},
 		"probePort":         49999,
@@ -97,6 +100,22 @@ func TestCreateTemplateV2(t *testing.T) {
 	//}
 	//
 	//t.Fatalf("Failed to delete template %s after retries", templateID)
+}
+
+func TestDeleteTemplate(t *testing.T) {
+	client := e2b.NewClient()
+	ctx := context.Background()
+	list, err := client.ListTemplates(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, template := range list {
+		err = client.DeleteTemplate(ctx, template.TemplateID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("Deleted template: %s", template.TemplateID)
+	}
 }
 
 func TestCreateSandboxWithMountedExec(t *testing.T) {
