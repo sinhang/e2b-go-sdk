@@ -5,7 +5,7 @@ RUN mkdir -p /root/.pip && \
     echo "index-url = https://repo.huaweicloud.com/repository/pypi/simple" >> /root/.pip/pip.conf && \
     echo "trusted-host = repo.huaweicloud.com" >> /root/.pip/pip.conf
 
-# CMD ["python3", "/srv/app.py"]
+CMD ["python3", "/srv/app.py"]
 # docker build -t 192.168.1.100:5000/sandbox/cube-code-sandbox:v1 .
 # docker push 192.168.1.100:5000/sandbox/cube-code-sandbox:v1
 

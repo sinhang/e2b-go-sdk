@@ -111,16 +111,17 @@ func (r *SandboxRouter) doRaw(ctx context.Context, method string, port int, path
 	}
 
 	var body io.Reader
+	var _body string
 	if requestBody != nil {
 		b, err := json.Marshal(requestBody)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("dp doRaw:", string(b))
+		_body = string(b)
 		body = bytes.NewReader(b)
 	}
-
-	fmt.Println("dp doRaw:", method, u)
+	// 只输出 _body 变量最后面 200 个字符
+	fmt.Println("dp doRaw:", method, u, _body[len(_body)-200:])
 	req, err := http.NewRequestWithContext(ctx, method, u, body)
 	if err != nil {
 		return nil, err
