@@ -22,19 +22,19 @@ func TestListSandbox(t *testing.T) {
 	}
 	for _, s := range sandbox {
 		t.Logf("Sandbox: %+v", s)
-		//if s.State == "running" {
-		//	err = client.DeleteSandbox(context.Background(), s.SandboxID)
-		//	if err != nil {
-		//		t.Fatal(err)
-		//	}
-		//}
+		if s.State == "running" {
+			err = client.DeleteSandbox(context.Background(), s.SandboxID)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 }
 
 func TestCreateSandbox(t *testing.T) {
 	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
-		TemplateID: "tpl-3a05aafec23c4d928cfa1850",
+		TemplateID: "tpl-62a7cd85f1a542698910991a",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -46,6 +46,7 @@ func TestCreateSandbox(t *testing.T) {
 	//if err != nil {
 	//	t.Fatal(err)
 	//}
+	// cubecli exec -it d6cbcb8d42b74334af1fec62794c5252  -- bash -l
 
 	start, err := client.StartProcess(context.Background(), e2b.StartProcessRequest{
 		Cmd: "ls",
@@ -67,12 +68,14 @@ func TestCreateTemplateV2(t *testing.T) {
 	//"image": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 	//"image":             "192.168.1.100:5000/sandbox/cube-code-sandbox:v1",
 	//"image":             "192.168.1.100:5000/sandbox/cube-base-code-sandbox:v1",
+	//
+	// "image":             "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 	result, err := client.CreateTemplate(ctx, e2b.JSONMap{
-		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox:v3",
+		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox:v1",
 		"templateID":        templateID,
-		"exposedPorts":      []int{49983},
-		"probePort":         49983,
-		"writableLayerSize": "1G",
+		"exposedPorts":      []int{49999, 49983},
+		"probePort":         49999,
+		"writableLayerSize": "2G",
 	})
 
 	if err != nil {
