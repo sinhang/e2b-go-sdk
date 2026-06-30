@@ -34,7 +34,12 @@ func TestListSandbox(t *testing.T) {
 func TestCreateSandbox(t *testing.T) {
 	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
-		TemplateID: "tpl-62a7cd85f1a542698910991a",
+		TemplateID: "tpl-75392500c989491eb92fc158",
+		EnvVars: e2b.JSONMap{
+			"E2B_SANDBOX_ID": "sandbox.SandboxID",
+			"AppId":          "app id",
+			"AppSecret":      "app secret",
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +51,7 @@ func TestCreateSandbox(t *testing.T) {
 	//if err != nil {
 	//	t.Fatal(err)
 	//}
-	// cubecli exec -it d6cbcb8d42b74334af1fec62794c5252  -- bash -l
+	// cubecli exec -it 8db197da97cc407e8eac54c94c2bd5c8  -- bash -l
 
 	start, err := client.StartProcess(context.Background(), e2b.StartProcessRequest{
 		Cmd: "ls",
