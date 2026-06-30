@@ -35,7 +35,7 @@ func TestCreateSandbox(t *testing.T) {
 	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
 		TemplateID: "tpl-75392500c989491eb92fc158",
-		EnvVars: e2b.JSONMap{
+		Envs: e2b.JSONMap{
 			"E2B_SANDBOX_ID": "sandbox.SandboxID",
 			"AppId":          "app id",
 			"AppSecret":      "app secret",

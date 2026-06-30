@@ -16,7 +16,7 @@ type CreateSandboxRequest struct {
 	AllowInternetAccess *bool     `json:"allow_internet_access,omitempty"`
 	Network             JSONMap   `json:"network,omitempty"`
 	Metadata            JSONMap   `json:"metadata,omitempty"`
-	EnvVars             JSONMap   `json:"envVars,omitempty"`
+	Envs                JSONMap   `json:"envs,omitempty"`
 	MCP                 JSONMap   `json:"mcp,omitempty"`
 	VolumeMounts        []JSONMap `json:"volumeMounts,omitempty"`
 }
@@ -93,8 +93,8 @@ func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*
 	if req.Metadata != nil {
 		altReq["metadata"] = req.Metadata
 	}
-	if req.EnvVars != nil {
-		altReq["env_vars"] = req.EnvVars
+	if req.Envs != nil {
+		altReq["envs"] = req.Envs
 	}
 	if req.MCP != nil {
 		altReq["mcp"] = req.MCP
