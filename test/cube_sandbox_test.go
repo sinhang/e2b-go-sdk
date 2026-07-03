@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,19 +35,26 @@ func TestListSandbox(t *testing.T) {
 func TestCreateSandbox(t *testing.T) {
 	hostMount := make([]e2b.HostMountItem, 0)
 	hostMount = append(hostMount, e2b.HostMountItem{
-		HostPath:  "/workspace",
+		HostPath:  "/mnt/workspaces/1",
 		MountPath: "/workspace",
 		ReadOnly:  false,
 	})
+
+	hostMountJSON, err := json.Marshal(hostMount)
+	if err != nil {
+		t.Fatalf("序列化 hostMount 失败: %v", err)
+	}
 	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
-		TemplateID: "tpl-2167fd3bfc334512b8ddb853",
+		TemplateID: "tpl-4534941083a943928c0ad30c",
 		EnvVars: map[string]string{
 			"E2B_SANDBOX_ID": "sandbox.SandboxID",
 			"AppId":          "app id",
 			"AppSecret":      "app secret",
 		},
-		HostMount: hostMount,
+		Metadata: map[string]interface{}{
+			"host-mount": string(hostMountJSON),
+		},
 	})
 	if err != nil {
 		t.Fatal(err)

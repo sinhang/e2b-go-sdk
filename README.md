@@ -390,8 +390,8 @@ go test -v -run TestRunCode1 ./test/
 ### tag
 ```shell
 git push -u origin main
-git tag v0.1.5
-git push origin v0.1.5
+git tag v0.1.6
+git push origin v0.1.6
 ```
 
 ### python example
@@ -410,5 +410,5 @@ Hello world Cube！
 ```
 
 ```shell
-cubecli exec -it 778c23cc485446aeb0206dca121d5ff6  -- bash -l
+cubecli exec -it 864d83e8be67492ea095fab0bfece411  -- bash -l
 ```

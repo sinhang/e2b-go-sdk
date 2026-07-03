@@ -22,9 +22,9 @@ type CreateSandboxRequest struct {
 }
 
 type HostMountItem struct {
-	HostPath  string      `json:"hostPath"`
-	MountPath string      `json:"mountPath"`
-	ReadOnly  interface{} `json:"readOnly"`
+	HostPath  string `json:"hostPath"`
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly"`
 }
 
 type SnapshotRequest struct {
