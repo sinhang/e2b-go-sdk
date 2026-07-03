@@ -2,15 +2,20 @@ services:
   cube-sandbox:
     image: ubuntu:24.04
     container_name: cube-sandbox
-    ports:
-      - "12088:12088"
-      - "19090:19090"
-      - "13000:13000"
-      - "11443:11443"
-      - "11080:11080"
+    network_mode: host
+#    ports:
+#      - "12088:12088"
+#      - "19090:19090"
+#      - "13000:13000"
+#      - "11443:11443"
+#      - "11080:11080"
     restart: unless-stopped
     stdin_open: true
     tty: true
     command: "/bin/sh"
     devices:
       - "/dev/kvm:/dev/kvm"
+    volumes:
+      - "./CubeSandbox:/home/CubeSandbox"
+      - "/mnt/nfs/sandbox_workspaces:/data/workspaces"
+      - "/mnt/nfs/skills:/data/skills"

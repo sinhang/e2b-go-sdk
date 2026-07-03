@@ -32,14 +32,21 @@ func TestListSandbox(t *testing.T) {
 }
 
 func TestCreateSandbox(t *testing.T) {
+	hostMount := make([]e2b.HostMountItem, 0)
+	hostMount = append(hostMount, e2b.HostMountItem{
+		HostPath:  "/workspace",
+		MountPath: "/workspace",
+		ReadOnly:  false,
+	})
 	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
-		TemplateID: "tpl-75392500c989491eb92fc158",
-		Envs: e2b.JSONMap{
+		TemplateID: "tpl-2167fd3bfc334512b8ddb853",
+		EnvVars: map[string]string{
 			"E2B_SANDBOX_ID": "sandbox.SandboxID",
 			"AppId":          "app id",
 			"AppSecret":      "app secret",
 		},
+		HostMount: hostMount,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -77,8 +84,8 @@ func TestCreateTemplateV2(t *testing.T) {
 	// "image":             "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 	result, err := client.CreateTemplate(ctx, e2b.JSONMap{
 		//"image":             "registry.i-mall.top/sandbox/cube-code-sandbox:v1",
-		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v1",
-		"template_id":       templateID,
+		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v3",
+		"template-id":       templateID,
 		"exposedPorts":      []int{49999, 49983},
 		"probePort":         49999,
 		"writableLayerSize": "2G",

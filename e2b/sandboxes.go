@@ -9,16 +9,22 @@ import (
 )
 
 type CreateSandboxRequest struct {
-	TemplateID          string    `json:"templateID,omitempty"`
-	Timeout             int       `json:"timeout,omitempty"`
-	AutoPause           *bool     `json:"autoPause,omitempty"`
-	Secure              *bool     `json:"secure,omitempty"`
-	AllowInternetAccess *bool     `json:"allow_internet_access,omitempty"`
-	Network             JSONMap   `json:"network,omitempty"`
-	Metadata            JSONMap   `json:"metadata,omitempty"`
-	Envs                JSONMap   `json:"envs,omitempty"`
-	MCP                 JSONMap   `json:"mcp,omitempty"`
-	VolumeMounts        []JSONMap `json:"volumeMounts,omitempty"`
+	TemplateID          string            `json:"templateID,omitempty"`
+	Timeout             int               `json:"timeout,omitempty"`
+	AutoPause           *bool             `json:"autoPause,omitempty"`
+	Secure              *bool             `json:"secure,omitempty"`
+	AllowInternetAccess *bool             `json:"allow_internet_access,omitempty"`
+	Network             JSONMap           `json:"network,omitempty"`
+	Metadata            JSONMap           `json:"metadata,omitempty"` // host-mount
+	EnvVars             map[string]string `json:"envVars,omitempty"`
+	MCP                 JSONMap           `json:"mcp,omitempty"`
+	VolumeMounts        []JSONMap         `json:"volumeMounts,omitempty"`
+}
+
+type HostMountItem struct {
+	HostPath  string      `json:"hostPath"`
+	MountPath string      `json:"mountPath"`
+	ReadOnly  interface{} `json:"readOnly"`
 }
 
 type SnapshotRequest struct {
@@ -51,18 +57,17 @@ func (c *Client) ListSandboxes(ctx context.Context, metadata string) ([]Sandbox,
 func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*Sandbox, error) {
 	var out Sandbox
 
-	// Cube compat: /sandboxes with camelCase works directly, no fallback needed.
+	payload := c.buildCreatePayload(req)
+
 	if c.compatMode {
-		err := c.doJSON(ctx, http.MethodPost, "/sandboxes", nil, req, &out)
+		err := c.doJSON(ctx, http.MethodPost, "/sandboxes", nil, payload, &out)
 		if err != nil {
 			return nil, err
 		}
 		return &out, nil
 	}
 
-	// E2B native: try standard route, with fallbacks for deployments that only
-	// expose /v2/sandboxes or /cube/sandbox with snake_case fields.
-	err := c.doJSON(ctx, http.MethodPost, "/sandboxes", nil, req, &out)
+	err := c.doJSON(ctx, http.MethodPost, "/sandboxes", nil, payload, &out)
 	if err == nil {
 		return &out, nil
 	}
@@ -93,14 +98,17 @@ func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*
 	if req.Metadata != nil {
 		altReq["metadata"] = req.Metadata
 	}
-	if req.Envs != nil {
-		altReq["envs"] = req.Envs
+	if len(req.EnvVars) > 0 {
+		altReq["env_vars"] = req.EnvVars
 	}
 	if req.MCP != nil {
 		altReq["mcp"] = req.MCP
 	}
 	if len(req.VolumeMounts) > 0 {
 		altReq["volume_mounts"] = req.VolumeMounts
+	}
+	if envs := envVarsToKeyValues(req.EnvVars); len(envs) > 0 {
+		altReq["containers"] = []map[string]interface{}{{"envs": envs}}
 	}
 
 	err = c.doJSON(ctx, http.MethodPost, "/v2/sandboxes", nil, altReq, &out)
@@ -118,6 +126,59 @@ func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (*
 	}
 
 	return nil, err
+}
+
+type keyValue struct {
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+func envVarsToKeyValues(envVars map[string]string) []*keyValue {
+	if len(envVars) == 0 {
+		return nil
+	}
+	out := make([]*keyValue, 0, len(envVars))
+	for k, v := range envVars {
+		out = append(out, &keyValue{Key: k, Value: v})
+	}
+	return out
+}
+
+func (c *Client) buildCreatePayload(req CreateSandboxRequest) map[string]interface{} {
+	payload := map[string]interface{}{
+		"templateID": req.TemplateID,
+	}
+	if req.Timeout > 0 {
+		payload["timeout"] = req.Timeout
+	}
+	if req.AutoPause != nil {
+		payload["autoPause"] = *req.AutoPause
+	}
+	if req.Secure != nil {
+		payload["secure"] = *req.Secure
+	}
+	if req.AllowInternetAccess != nil {
+		payload["allowInternetAccess"] = *req.AllowInternetAccess
+	}
+	if req.Network != nil {
+		payload["network"] = req.Network
+	}
+	if req.Metadata != nil {
+		payload["metadata"] = req.Metadata
+	}
+	if len(req.EnvVars) > 0 {
+		payload["envVars"] = req.EnvVars
+	}
+	if req.MCP != nil {
+		payload["mcp"] = req.MCP
+	}
+	if len(req.VolumeMounts) > 0 {
+		payload["volumeMounts"] = req.VolumeMounts
+	}
+	if envs := envVarsToKeyValues(req.EnvVars); len(envs) > 0 {
+		payload["containers"] = []map[string]interface{}{{"envs": envs}}
+	}
+	return payload
 }
 
 func (c *Client) ListSandboxesV2(ctx context.Context, metadata string) ([]Sandbox, error) {
