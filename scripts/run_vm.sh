@@ -196,8 +196,10 @@ QEMU_ARGS=(
   -enable-kvm
   -object memory-backend-memfd,id=mem,size=${VM_MEMORY_MB}M,share=on
   -machine q35,accel=kvm,memory-backend=mem
-  -chardev socket,id=char0,path=/tmp/vfs.sock
+  -chardev socket,id=char0,path=/tmp/workspace.sock
   -device vhost-user-fs-pci,chardev=char0,tag=workspace
+  -device vhost-user-fs-pci,chardev=char1,tag=skill
+  -chardev socket,id=char1,path=/tmp/skill.sock
   -cpu host
   -name "${VM_NAME}"
   -m "${VM_MEMORY_MB}"

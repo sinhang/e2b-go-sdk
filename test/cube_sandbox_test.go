@@ -46,7 +46,7 @@ func TestCreateSandbox(t *testing.T) {
 	}
 	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
-		TemplateID: "tpl-4534941083a943928c0ad30c",
+		TemplateID: "tpl-de0734df1b8645e6aefd9540",
 		EnvVars: map[string]string{
 			"E2B_SANDBOX_ID": "sandbox.SandboxID",
 			"AppId":          "app id",
@@ -92,7 +92,7 @@ func TestCreateTemplateV2(t *testing.T) {
 	// "image":             "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 	result, err := client.CreateTemplate(ctx, e2b.JSONMap{
 		//"image":             "registry.i-mall.top/sandbox/cube-code-sandbox:v1",
-		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v3",
+		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v4",
 		"template-id":       templateID,
 		"exposedPorts":      []int{49999, 49983},
 		"probePort":         49999,

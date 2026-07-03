@@ -7,16 +7,26 @@ docker exec -it cube-sandbox bash
 apt update && apt install python3 curl wget qemu-system-x86 qemu-utils ripgrep openssh-client make iproute2 python3-pip python3.12-venv virtiofsd -y
 
 /usr/libexec/virtiofsd \
-    --socket-path=/tmp/vfs.sock \
+    --socket-path=/tmp/workspace.sock \
     --shared-dir=/data/workspaces \
+    --sandbox=chroot
+
+/usr/libexec/virtiofsd \
+    --socket-path=/tmp/skill.sock \
+    --shared-dir=/data/skills \
     --sandbox=chroot
 
 /home/CubeSandbox/dev-env/prepare_image.sh
 # /home/CubeSandbox/dev-env/.workdir/
 
 /usr/libexec/virtiofsd \
-    --socket-path=/tmp/vfs.sock \
+    --socket-path=/tmp/workspace.sock \
     --shared-dir=/data/workspaces \
+    --sandbox=chroot
+
+/usr/libexec/virtiofsd \
+    --socket-path=/tmp/skill.sock \
+    --shared-dir=/data/skills \
     --sandbox=chroot
 
 # 新开终端
@@ -26,7 +36,9 @@ ss -lntp
 /home/CubeSandbox/dev-env/login.sh
 
 mkdir /mnt/workspaces
+mkdir /mnt/skills
 mount -t virtiofs workspace /mnt/workspaces
+mount -t virtiofs skill /mnt/skills
 
 curl -sL https://cnb.cool/CubeSandbox/CubeSandbox/-/git/raw/master/deploy/one-click/online-install.sh | CUBE_PVM_ENABLE=1 MIRROR=cn bash
 
