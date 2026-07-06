@@ -141,6 +141,7 @@ func (ci *CodeInterpreter) RunSimple(ctx context.Context, code string) (*Executi
 func parseExecuteResponse(data []byte) (*Execution, error) {
 	exec := &Execution{}
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
+	scanner.Buffer(make([]byte, 0, 1024*1024), 10*1024*1024)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {

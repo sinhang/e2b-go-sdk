@@ -40,6 +40,7 @@ mkdir /mnt/skills
 mount -t virtiofs workspace /mnt/workspaces
 mount -t virtiofs skill /mnt/skills
 
+curl -sL https://cnb.cool/CubeSandbox/CubeSandbox/-/git/raw/master/deploy/one-click/online-install.sh | MIRROR=cn bash
 curl -sL https://cnb.cool/CubeSandbox/CubeSandbox/-/git/raw/master/deploy/one-click/online-install.sh | CUBE_PVM_ENABLE=1 MIRROR=cn bash
 
 # [run_vm][INFO]   SSH        : ssh -p 10022 opencloudos@127.0.0.1
