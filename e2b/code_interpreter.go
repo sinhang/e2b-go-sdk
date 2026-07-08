@@ -142,23 +142,14 @@ func parseExecuteResponse(data []byte) (*Execution, error) {
 	exec := &Execution{}
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
 	scanner.Buffer(make([]byte, 0, 1024*1024), 10*1024*1024)
-	lines := 0
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
-		lines++
 
 		var msg OutputMessage
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
-			// Log unparseable lines so we can see what the code interpreter
-			// actually returned instead of silently discarding.
-			if len(line) > 200 {
-				fmt.Printf("e2b: code interpreter: unparseable line (len=%d): %s...\n", len(line), line[:200])
-			} else {
-				fmt.Printf("e2b: code interpreter: unparseable line (len=%d): %s\n", len(line), line)
-			}
 			continue
 		}
 
@@ -196,16 +187,6 @@ func parseExecuteResponse(data []byte) (*Execution, error) {
 				})
 			}
 		}
-	}
-	// Diagnostic: when the code interpreter returns data but we get zero
-	// parseable output, dump the raw bytes so we know what's happening.
-	if len(exec.Results) == 0 && exec.Error == nil && lines > 0 {
-		dump := string(data)
-		if len(dump) > 400 {
-			dump = dump[:400] + "..."
-		}
-		fmt.Printf("e2b: code interpreter: %d lines but 0 results. raw(%d): %s\n",
-			lines, len(data), dump)
 	}
 	return exec, scanner.Err()
 }
