@@ -91,9 +91,12 @@ func TestCreateTemplateV2(t *testing.T) {
 	//
 	// "image":             "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 	result, err := client.CreateTemplate(ctx, e2b.JSONMap{
-		"image": "registry.i-mall.top/sandbox/cube-code-sandbox:v2",
-		//"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v6",
+		//"image": "registry.i-mall.top/sandbox/cube-code-sandbox:v2",
+		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v7",
 		"template-id":       templateID,
+		"templateId":        templateID,
+		"templateID":        templateID,
+		"template_id":       templateID,
 		"exposedPorts":      []int{49999, 49983},
 		"probePort":         49999,
 		"writableLayerSize": "2G",

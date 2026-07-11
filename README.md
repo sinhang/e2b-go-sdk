@@ -410,5 +410,5 @@ Hello world Cube！
 ```
 
 ```shell
-cubecli exec -it 864d83e8be67492ea095fab0bfece411  -- bash -l
+cubecli exec -it 15ffbce2e5f5408dba2889c1dd8beabf -- bash -l
 ```

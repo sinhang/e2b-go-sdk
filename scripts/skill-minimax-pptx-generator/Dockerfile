@@ -44,7 +44,13 @@ RUN apt-get update && \
         libatspi2.0-0 \
         libgtk-3-0 \
         fonts-liberation \
-        fonts-noto-cjk && \
+        fonts-noto-cjk \
+        fonts-noto \
+        fonts-noto-cjk \
+        fonts-noto-extra \
+        fonts-noto-mono \
+        fonts-noto-ui-extra \
+        fonts-unifont && \
     rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
