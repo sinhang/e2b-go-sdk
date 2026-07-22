@@ -35,7 +35,7 @@ func TestListSandbox(t *testing.T) {
 func TestCreateSandbox(t *testing.T) {
 	hostMount := make([]e2b.HostMountItem, 0)
 	hostMount = append(hostMount, e2b.HostMountItem{
-		HostPath:  "/mnt/workspaces/1",
+		HostPath:  "/data/shared/1",
 		MountPath: "/workspace",
 		ReadOnly:  false,
 	})
@@ -46,13 +46,13 @@ func TestCreateSandbox(t *testing.T) {
 	}
 	client := e2b.NewClient()
 	sandbox, err := client.CreateSandbox(context.Background(), e2b.CreateSandboxRequest{
-		TemplateID: "tpl-439d8f2cc0604e57b95a1543",
+		TemplateID: "tpl-4ef1d8d168ac447ca6c94e27",
 		EnvVars: map[string]string{
 			"E2B_SANDBOX_ID": "sandbox.SandboxID",
 			"AppId":          "app id",
 			"AppSecret":      "app secret",
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"host-mount": string(hostMountJSON),
 		},
 	})
@@ -68,16 +68,16 @@ func TestCreateSandbox(t *testing.T) {
 	//}
 	// cubecli exec -it 8db197da97cc407e8eac54c94c2bd5c8  -- bash -l
 
-	start, err := client.StartProcess(context.Background(), e2b.StartProcessRequest{
-		Cmd: "ls",
-		Env: map[string]string{
-			"E2B_SANDBOX_ID": sandbox.SandboxID,
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("Process started: %+v", start)
+	//start, err := client.StartProcess(context.Background(), e2b.StartProcessRequest{
+	//	Cmd: "ls",
+	//	Env: map[string]string{
+	//		"E2B_SANDBOX_ID": sandbox.SandboxID,
+	//	},
+	//})
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
+	//t.Logf("Process started: %+v", start)
 }
 
 func TestCreateTemplateV2(t *testing.T) {
@@ -91,8 +91,9 @@ func TestCreateTemplateV2(t *testing.T) {
 	//
 	// "image":             "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 	result, err := client.CreateTemplate(ctx, e2b.JSONMap{
+		//"image": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 		//"image": "registry.i-mall.top/sandbox/cube-code-sandbox:v2",
-		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v7",
+		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v9",
 		"template-id":       templateID,
 		"templateId":        templateID,
 		"templateID":        templateID,

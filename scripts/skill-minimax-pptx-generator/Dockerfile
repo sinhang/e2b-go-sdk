@@ -2,7 +2,10 @@
 # docker pull cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest
 FROM cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest
 
-USER root
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
+
+#USER root
 
 # -----------------------------------------------------------------------------
 # pip 国内源
@@ -96,6 +99,8 @@ RUN npm config set registry https://registry.npmmirror.com && \
     npm install -g pnpm playwright
 
 RUN pnpm config set registry https://registry.npmmirror.com
+
+ENV PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright
 
 # -----------------------------------------------------------------------------
 # Playwright 下载国内镜像

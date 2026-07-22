@@ -86,10 +86,10 @@ func WithSandboxDomain(domain string) ClientOption {
 
 func NewClient(opts ...ClientOption) *Client {
 	c := &Client{
-		baseURL:       defaultBaseURL,
-		apiKey:        "API_KEY",
-		compatMode:    true,
-		sandboxDomain: defaultSandboxDomain, dataPlaneTimeout: 5 * time.Minute,
+		baseURL: defaultBaseURL,
+		apiKey:  "API_KEY",
+		//compatMode:    true,
+		//sandboxDomain: defaultSandboxDomain, dataPlaneTimeout: 5 * time.Minute,
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},

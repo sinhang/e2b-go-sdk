@@ -3,6 +3,10 @@
 docker compose up -d
 
 docker exec -it cube-sandbox bash
+
+sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.aliyun.com/ubuntu/|g' /etc/apt/sources.list.d/ubuntu.sources
+sed -i 's|http://security.ubuntu.com/ubuntu/|http://mirrors.aliyun.com/ubuntu/|g' /etc/apt/sources.list.d/ubuntu.sources
+
 # virtiofsd
 apt update && apt install python3 curl wget qemu-system-x86 qemu-utils ripgrep openssh-client make iproute2 python3-pip python3.12-venv virtiofsd -y
 
