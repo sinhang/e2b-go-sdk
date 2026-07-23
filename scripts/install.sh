@@ -12,12 +12,12 @@ apt update && apt install python3 curl wget qemu-system-x86 qemu-utils ripgrep o
 
 /usr/libexec/virtiofsd \
     --socket-path=/tmp/workspace.sock \
-    --shared-dir=/data/workspaces \
+    --shared-dir=/data/shared/workspaces \
     --sandbox=chroot
 
 /usr/libexec/virtiofsd \
     --socket-path=/tmp/skill.sock \
-    --shared-dir=/data/skills \
+    --shared-dir=/data/shared/skills \
     --sandbox=chroot
 
 /home/CubeSandbox/dev-env/prepare_image.sh
@@ -25,12 +25,12 @@ apt update && apt install python3 curl wget qemu-system-x86 qemu-utils ripgrep o
 
 /usr/libexec/virtiofsd \
     --socket-path=/tmp/workspace.sock \
-    --shared-dir=/data/workspaces \
+    --shared-dir=/data/shared/workspaces \
     --sandbox=chroot
 
 /usr/libexec/virtiofsd \
     --socket-path=/tmp/skill.sock \
-    --shared-dir=/data/skills \
+    --shared-dir=/data/shared/skills \
     --sandbox=chroot
 
 # 新开终端
@@ -39,10 +39,10 @@ ss -lntp
 # 新开终端
 /home/CubeSandbox/dev-env/login.sh
 
-mkdir /mnt/workspaces
-mkdir /mnt/skills
-mount -t virtiofs workspace /mnt/workspaces
-mount -t virtiofs skill /mnt/skills
+mkdir /data/shared/workspaces
+mkdir /data/shared/skills
+mount -t virtiofs workspace /data/shared/workspaces
+mount -t virtiofs skill /data/shared/skills
 
 curl -sL https://cnb.cool/CubeSandbox/CubeSandbox/-/git/raw/master/deploy/one-click/online-install.sh | MIRROR=cn bash
 curl -sL https://cnb.cool/CubeSandbox/CubeSandbox/-/git/raw/master/deploy/one-click/online-install.sh | CUBE_PVM_ENABLE=1 MIRROR=cn bash

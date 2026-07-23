@@ -17,5 +17,5 @@ services:
       - "/dev/kvm:/dev/kvm"
     volumes:
       - "./CubeSandbox:/home/CubeSandbox"
-      - "/mnt/nfs/sandbox_workspaces:/data/workspaces"
-      - "/mnt/nfs/skills:/data/skills"
+      - "/mnt/nfs/sandbox_workspaces:/data/shared/workspaces"
+      - "/mnt/nfs/skills:/data/shared/skills"

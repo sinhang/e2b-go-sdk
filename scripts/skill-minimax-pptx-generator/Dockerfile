@@ -14,6 +14,10 @@ RUN mkdir -p /root/.pip && \
     printf "[global]\nindex-url=https://repo.huaweicloud.com/repository/pypi/simple\ntrusted-host=repo.huaweicloud.com\n" \
     > /root/.pip/pip.conf
 
+RUN mkdir -p ~/.bun && \
+    echo '[install]' > ~/.bunfig.toml && \
+    echo 'registry = "https://registry.npmmirror.com/"' >> ~/.bunfig.toml
+
 # -----------------------------------------------------------------------------
 # 安装系统依赖
 # -----------------------------------------------------------------------------
@@ -96,7 +100,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # npm / pnpm 国内源
 # -----------------------------------------------------------------------------
 RUN npm config set registry https://registry.npmmirror.com && \
-    npm install -g pnpm playwright
+    npm install -g pnpm playwright bun
 
 RUN pnpm config set registry https://registry.npmmirror.com
 
