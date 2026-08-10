@@ -6,6 +6,16 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
     sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 
 #USER root
+# 安装系统 Chromium（国内 apt 源速度较快）
+RUN apt-get update && \
+    apt-get install -y chromium && \
+    rm -rf /var/lib/apt/lists/*
+
+# 创建软链接，让 agent-browser 能找到 "chrome" 命令
+RUN ln -s /usr/bin/chromium /usr/bin/chrome
+
+# 设置通用的 CHROME_PATH（不一定被 agent-browser 使用，但无害）
+ENV CHROME_PATH=/usr/bin/chromium
 
 # -----------------------------------------------------------------------------
 # pip 国内源
@@ -102,6 +112,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 RUN npm config set registry https://registry.npmmirror.com && \
     npm install -g pnpm playwright bun
 
+RUN npm install -g --registry=https://registry.npmjs.org/ agent-browser@0.33.2
+RUN agent-browser --version
+
 RUN pnpm config set registry https://registry.npmmirror.com
 
 ENV PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright
@@ -113,6 +126,9 @@ RUN npx playwright install chromium
 
 # Python Playwright 浏览器
 RUN python3 -m playwright install chromium
+
+#RUN npm install -g agent-browser && \
+#    agent-browser install
 
 # -----------------------------------------------------------------------------
 # 验证安装
@@ -138,6 +154,8 @@ RUN npm cache clean --force && \
 # 默认工作目录
 # -----------------------------------------------------------------------------
 WORKDIR /workspace
+
+EXPOSE 5050
 
 # docker build -t registry.i-mall.top/sandbox/cube-code-sandbox-skill:v1 .
 # docker push registry.i-mall.top/sandbox/cube-code-sandbox-skill:v1
