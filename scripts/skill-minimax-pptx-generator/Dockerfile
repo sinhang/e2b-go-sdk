@@ -67,6 +67,7 @@ RUN apt-get update && \
         fonts-noto-extra \
         fonts-noto-mono \
         fonts-noto-ui-extra \
+        libreoffice-core \
         fonts-unifont && \
     rm -rf /var/lib/apt/lists/*
 

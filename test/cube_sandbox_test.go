@@ -93,7 +93,7 @@ func TestCreateTemplateV2(t *testing.T) {
 	result, err := client.CreateTemplate(ctx, e2b.JSONMap{
 		//"image": "cube-sandbox-cn.tencentcloudcr.com/cube-sandbox/sandbox-code:latest",
 		//"image": "registry.i-mall.top/sandbox/cube-code-sandbox:v2",
-		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v14",
+		"image":             "registry.i-mall.top/sandbox/cube-code-sandbox-skill:v15",
 		"template-id":       templateID,
 		"templateId":        templateID,
 		"templateID":        templateID,
