@@ -39,8 +39,8 @@ ss -lntp
 # 新开终端
 /home/CubeSandbox/dev-env/login.sh
 
-mkdir /data/shared/workspaces
-mkdir /data/shared/skills
+mkdir -p /data/shared/workspaces
+mkdir -p /data/shared/skills
 mount -t virtiofs workspace /data/shared/workspaces
 mount -t virtiofs skill /data/shared/skills
 
